@@ -14,16 +14,7 @@ using namespace std;
 void Particle::Reset() {
 	InUse = false;
 	nhistory = 0;
-
-	if (history != NULL) {
-        history = NULL;
-        delete[] history;
-        history = NULL;
-    }
-
-    history = new Vector3d[maxhistory];
 }
-
 
 Particle::Particle(){
     InUse = false;
@@ -33,13 +24,8 @@ Particle::Particle(){
     history = NULL;
 }
 
-
 Particle::~Particle() {
-    if (history != NULL) {
-         history = NULL;
-        delete[] history;
-        history = NULL;
-    }
+    delete[] history;
 }
 
 void Particle::SetMaxHistory(int bs) {
@@ -57,23 +43,21 @@ void Particle::Draw() {
     if(!Blend) {
     glEnable(GL_POINT_SMOOTH);
         glBegin(GL_POINTS);
-            glPointSize(0.3);
             glColor4f(A.GetColor().x, A.GetColor().y, A.GetColor().z, 1);
             glVertex3f(A.GetCenter().x, A.GetCenter().y, A.GetCenter().z);
         glEnd();
     } else {
-    glEnable(GL_LINE_SMOOTH);
-        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        if(nhistory == 1) {
-            glBegin(GL_LINE);
-                glLineWidth(1);
-                glColor4f(A.GetColor().x, A.GetColor().y, A.GetColor().z, 1);
-                glVertex3f(history[1].x, history[1].y, history[1].z);
+        if(nhistory <= 1) {
+            glEnable(GL_POINT_SMOOTH);
+                glBegin(GL_POINT);
                 glColor4f(A.GetColor().x, A.GetColor().y, A.GetColor().z, 0);
                 glVertex3f(history[0].x, history[0].y, history[0].z);
         } else {
+            glEnable(GL_LINE_SMOOTH);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
             glBegin(GL_LINE_STRIP);
             glLineWidth(1);
+
             for (i = nhistory - 1; i >= 0; i--) {
                 glColor4f(A.GetColor().x, A.GetColor().y, A.GetColor().z, (i/(nhistory-1)));
                 glVertex3f(history[i].x, history[i].y, history[i].z);

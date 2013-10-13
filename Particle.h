@@ -18,15 +18,13 @@
 #  include <GL/glut.h>
 #endif
 
-#define MAXHIST		15
-
 class Particle {
 	private:
 		int InUse;						// particle off/on
 
 		double Birth;					// store NTimeSteps of when the particle is "born" (for age)
 
-		Vector3d *history;		// particle's history of centers
+		Vector3d *history;		        // particle's history of centers
 		int nhistory;					// history indx
 		int maxhistory;                 // max history
 

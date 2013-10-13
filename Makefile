@@ -19,8 +19,8 @@ else
   endif
 endif
 
-HFILES 	= Matrix.${H} Vector.${H} Utility.${H} Model.${H} Attributes.${H} Entity.${H} gauss.${H} Particle.${H} Pmanager.${H} Pgenerator.${H}
-OFILES 	= Matrix.o Vector.o Utility.o Model.o  Attributes.o Entity.o gauss.o Particle.o Pmanager.o Pgenerator.o
+HFILES 	= Matrix.${H} Vector.${H} Utility.${H} Model.${H} Attributes.${H} Entity.${H} gauss.${H} Particle.${H} Pmanager.${H} Pgenerator.${H} State.${H}
+OFILES 	= Matrix.o Vector.o Utility.o Model.o  Attributes.o Entity.o gauss.o Particle.o Pmanager.o Pgenerator.o State.o
 PROJECT = particles
 
 ${PROJECT}:	${PROJECT}.o $(OFILES)
@@ -28,6 +28,9 @@ ${PROJECT}:	${PROJECT}.o $(OFILES)
 
 ${PROJECT}.o: ${PROJECT}.${C} $(HFILES)
 	${CC} $(CFLAGS) -c ${PROJECT}.${C}
+
+Stateo: State.${C} State.${H}
+	${CC} ${CFLAGS} -c ${INCFLAGS} State.${C}
 
 Pgenerator.o: Pgenerator.${C} Pgenerator.${H}
 	${CC} ${CFLAGS} -c ${INCFLAGS} Pgenerator.${C}

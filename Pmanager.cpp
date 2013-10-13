@@ -20,11 +20,7 @@ Pmanager::Pmanager() {
 }
 
 Pmanager::~Pmanager() {
-    if (Particles != NULL) {
-        Particles = NULL;
-        delete[] Particles;
-        Particles = NULL;
-    }
+    delete[] Particles;
 }
 
 void Pmanager::SetMaxPart(int numofp, int bs) {
