@@ -108,11 +108,7 @@ Entity Pl;
 
 static int AllowBlend = true;
 
-struct Env {
-    Vector3d G;
-    Vector3d Wind;
-    double Viscosity;
- } env;
+Env env;
 
 struct Attractor {
     Vector3d g;
@@ -194,50 +190,6 @@ void Simulate(){
 
     // for now, kill off particles whose age > 20
     int killed = Manager.KillParticles(Time);
-
-    //cout << "killed: " << killed << endl;
-    Generator1.MoveGenerator(TimeStep);
-    Generator2.MoveGenerator(TimeStep);
-
-    // for every particle the manager has....
-    for (j = 0; j < Manager.GetNused(); j++ ) {
-         //Manager.Particles[j].A.PrintAttr();
-         //cout << "j: " << j << endl;
-
-        // get the new acceleration
-        Manager.Particles[j].A.CalcAccel(env.G, env.Wind, env.Viscosity);
-
-        //check if we hit within the attractor's grasp
-        if((Manager.Particles[j].A.GetCenter() - pa1.center).norm() < pa1.r)
-            Manager.Particles[j].A.CalcPtAttract(pa1.center, pa1.g);
-
-
-        // evil Euler integration to get velocity and position at next timestep
-        Manager.Particles[j].A.CalcTempCV(TimeStep);
-
-        // Manager.Particles[j].PrintAttr();
-        if((int)Manager.Particles[j].GetAge(Time) % 5 == 0)
-            Manager.Particles[j].A.SetColor(Generator1.GenerateColor(Manager.Particles[j].A.GetColor()));
-
-
-        phit = -1;
-        phit = Pl.CheckCollision(Manager.Particles[j].A.GetCenter(), Manager.Particles[j].A.GetTempv(), Manager.Particles[j].A.GetTempc());
-
-        if(phit != -1) {
-          //reflect it from the plane -- data during collision
-          Manager.Particles[j].A.Reflect(Pl.GetNormal(phit), Pl.GetVertex(Pl.GetTriangle(phit).x));
-
-          //DrawScene(1, ihit);  // should do something with this in terms of collision; change draw scene function
-        } else {
-            Manager.Particles[j].A.SetVelocity(Manager.Particles[j].A.GetTempv());
-            Manager.Particles[j].A.SetCenter(Manager.Particles[j].A.GetTempc());
-        }
-
-        //cout << "Im adding inside the simulate for loop... " << endl;
-        Manager.Particles[j].AddHistory(Manager.Particles[j].A.GetCenter());
-         //Manager.Particles[j].PrintInfo();
-    }
-
     //cout << "ADDING!! " << endl;
     // generate particles if we can
     if(Manager.HasFreeParticles()) {
@@ -250,15 +202,19 @@ void Simulate(){
         }
     }
 
-    // advance the real timestep
-    Time += TimeStep;
-    NTimeSteps++;
+    Manager.S.Force(Time, .0005, env);
 
-    ///////////////////////////////////////////////////////////////////////
+
 
     // draw only if we are at a display time
     if(NTimeSteps % TimeStepsPerDisplay == 0)
     DrawScene(0);
+
+    Manager.S.SetState(TimeStep);
+
+    // advance the real timestep
+    Time += TimeStep;
+    NTimeSteps++;
 
     // set up time for next timestep if in continuous mode
     glutIdleFunc(NULL);

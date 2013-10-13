@@ -30,9 +30,11 @@ void Pmanager::SetMaxPart(int numofp, int bs) {
     int i;
     for (i = 0; i < nmaxparticles; i++ ) {
         Particles[i].SetMaxHistory(bs);
-       // Particles[i].PrintInfo();
     }
+
+    S.SetSize(numofp);
 }
+
 
 void Pmanager::SetStopped(int type) { Stopped = type; }
 void Pmanager::SetStarted(int type) { Started = type;}
@@ -71,6 +73,7 @@ void Pmanager::UseParticle(Vector3d c0, Vector3d v0, double ts, Vector4d color, 
     Particles[nused].AddHistory(c0);
 
 	//Particles[nused].PrintInfo();
+    S.AddState(nused, c0, v0);
 
 	nused++;
 	//cout << "UseParticle() nused's after " << nused << endl;
@@ -91,19 +94,26 @@ void Pmanager::FreeParticle(int indx) {
         Particles[nused-1].Reset();
         //cout << "NHISTORY_SHOULDBE0: " << Particles[nused-1].Getnhistory() << endl;
         nused--;
+
+        S.MoveState(indx, nused);
+
     } else if (indx == nused - 1){
         //cout << "-- freeing indx: " << indx << " from nused: " << nused << endl;
         Particles[indx].Reset();
         //cout << "NHISTORY_SHOULDALSOBE0: " << Particles[indx].Getnhistory() << endl;
         nused--;
+
+        S.RemoveState(indx);
     }
 //cout << "new nused: " << nused << endl;
 }
 
 void Pmanager::KillAll() {
     int i;
-        for (i = 0; i < nused; i++)
+        for (i = 0; i < nused; i++) {
             Particles[i].Reset();
+            S.RemoveState(i);
+        }
     nused = 0;
 }
 
@@ -134,7 +144,10 @@ int Pmanager::KillParticles(double ts) {
 void Pmanager::DrawSystem() {
 	int i;
 
-	for ( i = 0; i < nused; i++ ) Particles[i].Draw();
+	for ( i = 0; i < nused; i++ ) {
+        Particles[i].A.SetCenter(S.GetCenter(i));
+        Particles[i].Draw();
+    }
 }
 
 

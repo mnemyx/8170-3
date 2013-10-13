@@ -10,6 +10,7 @@
 #ifndef _PMANAGER_H_
 #define _PMANAGER_H_
 
+#include "State.h"
 #include "Particle.h"
 
 class Pmanager {
@@ -20,9 +21,9 @@ class Pmanager {
 		int Step;						// simulation is step mode
 		int nmaxparticles;
 
-
 	public:
         Particle *Particles;	// matrix of particles...
+        State S;                // State Vector?
 
         Pmanager();
 		~Pmanager();
