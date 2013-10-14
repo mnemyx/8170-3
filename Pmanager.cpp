@@ -175,10 +175,15 @@ void Pmanager::DrawSystem() {
 	glDisable(GL_LIGHTING);
     glEnable(GL_SMOOTH);
     glEnable(GL_BLEND);
+
+    glEnable(GL_POINT_SMOOTH);
+
     glBegin(GL_POINTS);
 
+
 	for ( i = 0; i < nused; i++ ) {
-        glColor4f(Particles[i].A.GetColor().x, Particles[i].A.GetColor().y, Particles[i].A.GetColor().z, 1);
+        cout << "x: " << S[i].x << " y: " << S[i].y << " z: " <<  S[i].z << endl;
+        glColor4f(255,255,255,1);
         glVertex3f(S[i].x, S[i].y, S[i].z);
     }
 

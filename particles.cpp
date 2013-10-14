@@ -112,6 +112,11 @@ struct Env {
  } env;
 
 
+/** avoidance constants **/
+double Ka = 2.5;
+double Kv = 2.5;
+double Kc = 2.5;
+
 /************** DRAWING & SHADING FUNCTIONS ***********************/
 //
 // Get the shading setup for the objects
@@ -170,13 +175,71 @@ void DrawScene(int collision){
 }
 
 /********************* CALLED BY SIMULATE() ***********************/
-Vector3d Accelerate(State s, double  t, int indx) {
+
+Vector3d Accelerate(State s, double  t, double m, int indx) {
     int nmaxp = s.GetSize();
+    Vector3d acc;
+    Vector3d xij, uij;
+    Vector3d aaij, avij, acij, ai;
+    int i;
+    double Dij, dij, aa, av, ac, amax, ares;
+    double r1 = 10.0;
+    double r2 = 20.0;
 
     if (env.Wind.x == 0 && env.Wind.y == 0 && env.Wind.z == 0)
-        return (env.G - env.Viscosity * s[indx + nmaxp]);
+        acc = env.G - env.Viscosity * s[indx + nmaxp];
     else
-        return (env.G + env.Viscosity * (env.Wind - s[indx + nmaxp]));
+        acc = env.G + env.Viscosity * (env.Wind - s[indx + nmaxp]);
+
+    if(indx != 0 ) {
+        for (i = 0; i < nmaxp; i++) {
+            if (i != indx) {
+                cout << "i: " << i << endl;
+                cout << " indx: " << indx << endl;
+                xij = s[i] - s[indx];
+                dij = xij.norm();
+                uij = xij.normalize();
+
+                cout << " dij: " << dij << endl;
+
+                if(dij <= r1) Dij = 1.0;
+                else if (dij > r2) Dij = 0.0;
+                else {
+                    Dij = 1.0 - (dij - r1) / (r2 - r1);
+                }
+
+                cout << Dij << endl;
+
+                aaij = -Dij/m * Ka/dij * uij;
+                avij = Dij/m * Kv * (s[i + nmaxp] - s[indx + nmaxp]);
+                acij = Dij/m * Kc * dij * uij;
+
+                amax = 10.0;
+
+                aa = min(aaij.norm(), amax);
+                ares = amax - aa;
+
+                if(ares > 0) {
+                    av = min(avij.norm(), ares);
+                    ares = ares - av;
+
+                    if(ares > 0) {
+                        ac = min(acij.norm(), ares);
+                    } else {
+                        ac = 0.0;
+                    }
+                } else {
+                    av = 0.0;
+                }
+
+                ai = aa * uij + av * uij + ac * uij;
+
+                acc = acc + ai;
+            }
+        }
+    }
+
+    return acc;
 }
 
 
@@ -188,8 +251,26 @@ State F(State s, double m, double t) {
     x.SetSize(nmaxp);
 
     for (i = 0; i < nmaxp; i++) {
-        x[i] = s[nmaxp + i];
-        x[nmaxp + i] = (1 / m) * Accelerate(s, t, i);
+        if(i == 1) { // our guiding boid
+            // x[i] = s[nmaxp + i];
+
+            // steering force = desired velocity - current velocity
+            // what would the resulting velocity if the collision were to occur?
+            // pure reflection of the current velocity could work.
+
+            //  lissajous:
+            //      ampA * sin(freqA * t + phasephi),
+            //      ampB * sin(freqB * t + phasetri),
+            //      ampC * sin(freqC * t + phasex)
+
+            x[i].x = x[i].x + (100 * (sin(1.5 * t + 30)));
+            x[i].y = x[i].y + (20 * (sin(6 * t + 90)));
+            x[i].z = x[i].z + (100 * (sin(1 * t + 30)));
+        } else {
+            x[i] = s[nmaxp + i];
+        }
+
+        x[nmaxp + i] = (1 / m) * Accelerate(s, t, m, i);
     }
 
     return x;
@@ -204,14 +285,14 @@ State RK4(State s, double m, double t, double ts) {
     k2 = F(s + (k1 * .5), m, t + ts * .5) * ts;
     //cout << "k2" << endl;
     //k2.PrintState();
-    k3 = F(s + (k2 * .5), m,  t + ts * .5) * ts;
+    k3 = F(s + (k2 * .5), m, t + ts * .5) * ts;
     //cout << "k3" << endl;
     //k3.PrintState();
     k4 = F(s + k3, m, t + ts) * ts;
     //cout << "k4" << endl;
     //k4.PrintState();
 
-    return (s + (k1 + k2 + k3 + k4) * (.1666));
+    return (s + ((k1 + (k2*2) + (k3*2) + k4) * (.1666)));
 }
 
 
@@ -231,11 +312,17 @@ void Simulate(){
     // generate particles if we can
     if(Manager.HasFreeParticles()) {
     //cout << "Manager.FreePLeft(): " << Manager.FreePLeft() << endl;
-        for(i = 0; i < Manager.FreePLeft() - 1 && i < Generator1.GetPNum(); i++) {
+        for(i = 0; i < 5; i++) {
             Generator1.GenerateAttr(1);
-            Manager.UseParticle(Generator1.GenC0(), Vector(0,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+            Manager.UseParticle(Vector(1,1,1), Vector(0,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
         }
     }
+
+    //  lissajous dampened:
+    //  t (
+    //      ampA * sin(freqA * t + phasephi),
+    //      ampB * sin(freqB * t + phasetri),
+    //      ampC * sin(freqC * t + phasex))
 
     //filebuf buf;
     //buf.open(("testlog"), ios::out);
@@ -244,7 +331,7 @@ void Simulate(){
     //Manager.S.PrintState();
 
     DrawScene(0);
-    Manager.S = RK4(Manager.S, .0005, Time, TimeStep);
+    Manager.S = RK4(Manager.S, 1, Time, TimeStep);
 
     //Manager.S.PrintState();
     //cout.rdbuf(oldbuf);
@@ -416,6 +503,7 @@ void updateProjection(){
   // determine the projection system and drawing coordinates
   if(Projection == ORTHO)
     glOrtho(-DRAWWIDTH/2, DRAWWIDTH/2, -DRAWHEIGHT/2, DRAWHEIGHT/2, NEAR, FAR);
+    //glOrtho(0, DRAWWIDTH, 0, DRAWHEIGHT, NEAR, FAR);
   else{
     // scale drawing coords so center of cube is same size as in ortho
     // if it is at its nominal location
@@ -423,6 +511,7 @@ void updateProjection(){
     double xmax = scale * DRAWWIDTH / 2;
     double ymax = scale * DRAWHEIGHT / 2;
     glFrustum(-xmax, xmax, -ymax, ymax, NEAR, FAR);
+    //glFrustum(0.0, xmax * 2, 0.0, xmax * 2, NEAR, FAR);
   }
 
   // restore modelview matrix as the one being updated
