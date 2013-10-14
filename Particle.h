@@ -35,6 +35,9 @@ class Particle {
 
 		Particle();						// defaults...
 		~Particle();
+		Particle(const Particle& other);
+		Particle& operator= (const Particle& other);
+
         void SetMaxHistory(int blendsize);
 
 		void Reset();					// gets called by the constructor. kind of cleans up..

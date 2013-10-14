@@ -25,8 +25,38 @@ Particle::Particle(){
 }
 
 Particle::~Particle() {
-    delete[] history;
+    if (history != NULL) {
+        delete[] history;
+        history = NULL;
+    }
 }
+
+Particle::Particle(const Particle& o) {
+    history = new Vector3d;
+
+    InUse = o.InUse;
+    Birth = o.Birth;
+    *history = *o.history;
+    nhistory = o.nhistory;
+    maxhistory = o.maxhistory;
+    Blend = o.Blend;
+    A = o.A;
+}
+
+Particle& Particle::operator=(const Particle& o) {
+    Particle temp(o);
+
+    swap(InUse, temp.InUse);
+    swap(Birth, temp.Birth);
+    swap(history, temp.history);
+    swap(nhistory, temp.nhistory);
+    swap(maxhistory, temp.maxhistory);
+    swap(Blend, temp.Blend);
+    swap(A, temp.A);
+
+    return *this;
+}
+
 
 void Particle::SetMaxHistory(int bs) {
     maxhistory = bs;

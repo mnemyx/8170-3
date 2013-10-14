@@ -204,8 +204,6 @@ void Simulate(){
 
     Manager.S.Force(Time, .0005, env);
 
-
-
     // draw only if we are at a display time
     if(NTimeSteps % TimeStepsPerDisplay == 0)
     DrawScene(0);
@@ -215,6 +213,7 @@ void Simulate(){
     // advance the real timestep
     Time += TimeStep;
     NTimeSteps++;
+
 
     // set up time for next timestep if in continuous mode
     glutIdleFunc(NULL);

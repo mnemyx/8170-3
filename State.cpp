@@ -18,8 +18,37 @@ State::State() {
 }
 
 State::~State() {
-    delete[] StateVector;
-    delete[] X;
+    if(StateVector != NULL) {
+        delete[] StateVector;
+        StateVector = NULL;
+    }
+
+    if(X != NULL) {
+        delete[] X;
+        X = NULL;
+    }
+}
+
+State::State(const State& o) {
+    if(nmaxp != o.nmaxp) {
+      cerr << "error in copying - state must have same size" << endl;
+      exit(1);
+    }
+
+    int i;
+    for (i = 0; i < o.nmaxp * 2; i++) {
+        StateVector[i] = o.StateVector[i];
+        X[i] = o.X[i];
+    }
+}
+
+State& State::operator=(const State& o) {
+    State temp(o);
+
+    swap(StateVector, temp.StateVector);
+    swap(X, temp.X);
+
+    return *this;
 }
 
 void State::SetSize(int numofp) {
@@ -40,9 +69,9 @@ Vector3d& State::operator[](int i) {
 //////////////////////////// CALCULATIONS /////////////////////////////
 Vector3d State::Acceleration(float t, int indx, Env e) {
     if (e.Wind.x == 0 && e.Wind.y == 0 && e.Wind.z == 0)
-        return ((e.G - e.Viscosity) * StateVector[indx]);
+        return (e.G - e.Viscosity * StateVector[indx + nmaxp]);
     else
-        return ((e.G + e.Viscosity) * (e.Wind - StateVector[indx]));
+        return (e.G + e.Viscosity * (e.Wind - StateVector[indx + nmaxp]));
 }
 
 
@@ -60,7 +89,7 @@ void State::SetState(float t) {
     int i;
 
     for (i = 0; i < (nmaxp * 2); i++) {
-        StateVector[i] = X[i] * t;
+        StateVector[i] = StateVector[i] + X[i] * t;
     }
 }
 

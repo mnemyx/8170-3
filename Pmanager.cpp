@@ -20,7 +20,36 @@ Pmanager::Pmanager() {
 }
 
 Pmanager::~Pmanager() {
-    delete[] Particles;
+    if (Particles != NULL) {
+        delete[] Particles;
+        Particles = NULL;
+    }
+}
+
+Pmanager::Pmanager(const Pmanager& o) {
+    Particles = new Particle;
+
+    nused = o.nused;
+    Stopped = o.Stopped;
+    Started = o.Started;
+    Step = o.Step;
+    nmaxparticles = o.nmaxparticles;
+    *Particles = *o.Particles;
+    S = o.S;
+}
+
+Pmanager& Pmanager::operator=(const Pmanager& o) {
+    Pmanager temp(o);
+
+    swap(nused, temp.nused);
+    swap(Stopped, temp.Stopped);
+    swap(Started, temp.Started);
+    swap(Step, temp.Step);
+    swap(nmaxparticles, temp.nmaxparticles);
+    swap(Particles, temp.Particles);
+    swap(S, temp.S);
+
+    return *this;
 }
 
 void Pmanager::SetMaxPart(int numofp, int bs) {
@@ -34,7 +63,6 @@ void Pmanager::SetMaxPart(int numofp, int bs) {
 
     S.SetSize(numofp);
 }
-
 
 void Pmanager::SetStopped(int type) { Stopped = type; }
 void Pmanager::SetStarted(int type) { Started = type;}

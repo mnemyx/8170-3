@@ -27,6 +27,9 @@ class State {
 	public:
         State();
 		~State();
+		State(const State& other);
+		State& operator= (const State& other);
+
 		void SetSize(int numofp);
 		Vector3d& operator[](int i);
 
