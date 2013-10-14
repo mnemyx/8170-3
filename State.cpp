@@ -14,7 +14,6 @@ using namespace std;
 State::State() {
     nmaxp = 0;
     StateVector = NULL;
-    X = NULL;
 }
 
 State::~State() {
@@ -22,75 +21,132 @@ State::~State() {
         delete[] StateVector;
         StateVector = NULL;
     }
-
-    if(X != NULL) {
-        delete[] X;
-        X = NULL;
-    }
-}
-
-State::State(const State& o) {
-    if(nmaxp != o.nmaxp) {
-      cerr << "error in copying - state must have same size" << endl;
-      exit(1);
-    }
-
-    int i;
-    for (i = 0; i < o.nmaxp * 2; i++) {
-        StateVector[i] = o.StateVector[i];
-        X[i] = o.X[i];
-    }
-}
-
-State& State::operator=(const State& o) {
-    State temp(o);
-
-    swap(StateVector, temp.StateVector);
-    swap(X, temp.X);
-
-    return *this;
 }
 
 void State::SetSize(int numofp) {
     nmaxp = numofp;
     StateVector = new Vector3d[numofp * 2];
-    X = new Vector3d[numofp * 2];
+
+    int i;
+    for (i = 0; i < nmaxp; i++) {
+        StateVector[i] = Vector(0,0,0);
+        StateVector[i + nmaxp] = Vector(0,0,0);
+    }
+}
+
+State::State(const State& o) {
+    SetSize(o.nmaxp);
+    int i;
+
+    for (i = 0; i < o.nmaxp; i++) {
+        StateVector[i] = o.StateVector[i];
+        StateVector[i + nmaxp] = o.StateVector[i + nmaxp];
+    }
+}
+
+State& State::operator=(const State& o) {
+    int i;
+
+    if(nmaxp != o.nmaxp) {
+        delete[] StateVector;
+        SetSize(o.nmaxp);
+    }
+
+    for (i = 0; i < o.nmaxp; i++) {
+        StateVector[i] = o.StateVector[i];
+        StateVector[i + o.nmaxp] = o.StateVector[i + o.nmaxp];
+    }
+
+    return *this;
 }
 
 Vector3d& State::operator[](int i) {
     if(i < 0 || i > (nmaxp * 2)) {
-        cerr << " out of bounds: state class (state.cpp line 30) -- i: " << i << " & nmaxp*2: " << nmaxp * 2 << endl;
+        cerr << " out of bounds: state class (state.cpp operator[]) -- i: " << i << " & nmaxp*2: " << nmaxp * 2 << endl;
         exit(1);
     }
 
     return StateVector[i];
 }
 
-//////////////////////////// CALCULATIONS /////////////////////////////
-Vector3d State::Acceleration(float t, int indx, Env e) {
-    if (e.Wind.x == 0 && e.Wind.y == 0 && e.Wind.z == 0)
-        return (e.G - e.Viscosity * StateVector[indx + nmaxp]);
-    else
-        return (e.G + e.Viscosity * (e.Wind - StateVector[indx + nmaxp]));
+State State::operator+ (const State& o) {
+    int i;
+    State temp;
+
+    if(nmaxp != o.nmaxp) {
+        cerr << " mismatch sizes (operator+)! -- nmaxp: " << nmaxp << " & o.nmaxp: " << o.nmaxp << endl;
+        exit(1);
+    }
+
+    temp.SetSize(nmaxp);
+
+    for (i = 0; i < nmaxp; i ++) {
+        temp[i] = StateVector[i] + o.StateVector[i];
+        temp[i + nmaxp] = StateVector[i + nmaxp] + o.StateVector[i + nmaxp];
+    }
+
+    return temp;
 }
 
-
-void State::Force(float t, double m, Env e) {
+State State::operator- (const State& o) {
     int i;
+    State temp;
 
-    for (i = 0; i < nmaxp; i++) {
-        X[i] = StateVector[nmaxp + i];
-        X[nmaxp + i] = (1 / m) * Acceleration(t, i, e);
+    if(nmaxp != o.nmaxp) {
+        cerr << " mismatch sizes (operator-)! -- nmaxp: " << nmaxp << " & o.nmaxp: " << o.nmaxp << endl;
+        exit(1);
     }
+
+    temp.SetSize(nmaxp);
+
+    for (i = 0; i < nmaxp; i ++) {
+        temp[i] = StateVector[i] - o.StateVector[i];
+        temp[i + nmaxp] = StateVector[i + nmaxp] - o.StateVector[i + nmaxp];
+    }
+
+    return temp;
 }
 
-
-void State::SetState(float t) {
+State State::operator* (const State& o) {
     int i;
+    State temp;
 
-    for (i = 0; i < (nmaxp * 2); i++) {
-        StateVector[i] = StateVector[i] + X[i] * t;
+    if(nmaxp != o.nmaxp) {
+        cerr << " mismatch sizes (operator*)! -- nmaxp: " << nmaxp << " & o.nmaxp: " << o.nmaxp << endl;
+        exit(1);
     }
+
+    temp.SetSize(nmaxp);
+
+    for (i = 0; i < nmaxp; i ++) {
+        temp[i] = StateVector[i] * o.StateVector[i];
+        temp[i + nmaxp] = StateVector[i + nmaxp] * o.StateVector[i + nmaxp];
+    }
+
+    return temp;
+}
+
+State State::operator* (const double o) {
+    int i;
+    State temp;
+
+    temp.SetSize(nmaxp);
+
+    for (i = 0; i < nmaxp; i ++) {
+        temp[i] = StateVector[i] * o;
+        temp[i + nmaxp] = StateVector[i + nmaxp] * o;
+    }
+
+    return temp;
+}
+
+State& State::operator+= (const State& o) {
+    *this = *this + o;
+    return *this;
+}
+
+int State::GetSize() {
+    return nmaxp;
 }
 
 //////////////////////////// ACCESS FUNCTIONS /////////////////////////

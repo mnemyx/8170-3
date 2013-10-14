@@ -172,10 +172,21 @@ int Pmanager::KillParticles(double ts) {
 void Pmanager::DrawSystem() {
 	int i;
 
+	glDisable(GL_LIGHTING);
+    glEnable(GL_SMOOTH);
+    glEnable(GL_BLEND);
+    glBegin(GL_POINTS);
+
 	for ( i = 0; i < nused; i++ ) {
-        Particles[i].A.SetCenter(S.GetCenter(i));
-        Particles[i].Draw();
+        glColor4f(Particles[i].A.GetColor().x, Particles[i].A.GetColor().y, Particles[i].A.GetColor().z, 1);
+        glVertex3f(S[i].x, S[i].y, S[i].z);
     }
+
+    glEnd();
+
+    glDisable(GL_BLEND);
+	glDisable(GL_SMOOTH);
+	glEnable(GL_LIGHTING);
 }
 
 

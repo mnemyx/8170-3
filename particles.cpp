@@ -10,6 +10,9 @@
 
 #include <cstdlib>
 #include <cstdio>
+#include <sstream>
+#include <iostream>
+#include <fstream>
 
 #ifdef __APPLE__
 #  include <GLUT/glut.h>
@@ -93,28 +96,21 @@ static char *ParamFilename = NULL;
 
 static double TimeStep;
 static double DispTime;
-static int TimeStepsPerDisplay;
 static int TimerDelay;
 
-static int NSteps = 0;
-static int NTimeSteps = -1;
 static double Time = 0;
 
-static int Toggle = 0;
-
 Pmanager Manager;
-Pgenerator Generator1, Generator2;
-Entity Pl;
+Pgenerator Generator1;
 
 static int AllowBlend = true;
 
-Env env;
+struct Env {
+    Vector3d G;
+    Vector3d Wind;
+    double Viscosity;
+ } env;
 
-struct Attractor {
-    Vector3d g;
-    Vector3d center;
-    double r;
-} pa1;
 
 /************** DRAWING & SHADING FUNCTIONS ***********************/
 //
@@ -173,46 +169,88 @@ void DrawScene(int collision){
   glutSwapBuffers();
 }
 
+/********************* CALLED BY SIMULATE() ***********************/
+Vector3d Accelerate(State s, double  t, int indx) {
+    int nmaxp = s.GetSize();
 
-/********************* SIMULATE FUNCTION **********************/
+    if (env.Wind.x == 0 && env.Wind.y == 0 && env.Wind.z == 0)
+        return (env.G - env.Viscosity * s[indx + nmaxp]);
+    else
+        return (env.G + env.Viscosity * (env.Wind - s[indx + nmaxp]));
+}
+
+
+State F(State s, double m, double t) {
+    int i;
+    int nmaxp = s.GetSize();
+    State x;
+
+    x.SetSize(nmaxp);
+
+    for (i = 0; i < nmaxp; i++) {
+        x[i] = s[nmaxp + i];
+        x[nmaxp + i] = (1 / m) * Accelerate(s, t, i);
+    }
+
+    return x;
+}
+
+State RK4(State s, double m, double t, double ts) {
+    State k1, k2, k3, k4;
+
+    k1 = F(s, m, t) * ts;
+    //cout << "k1" << endl;
+    //k1.PrintState();
+    k2 = F(s + (k1 * .5), m, t + ts * .5) * ts;
+    //cout << "k2" << endl;
+    //k2.PrintState();
+    k3 = F(s + (k2 * .5), m,  t + ts * .5) * ts;
+    //cout << "k3" << endl;
+    //k3.PrintState();
+    k4 = F(s + k3, m, t + ts) * ts;
+    //cout << "k4" << endl;
+    //k4.PrintState();
+
+    return (s + (k1 + k2 + k3 + k4) * (.1666));
+}
+
+
+/*********************** SIMULATE FUNCTION ************************/
 ///
 //  Run a single time step in the simulation
 //
 void Simulate(){
-    int i, j, p, phit,ahit;
-    float f, fhit;
-    Vector3d temphit, p0, p1, g;
+    int i, j;
 
     // don't do anything if our simulation is stopped
     if(Manager.IsStopped()) {
         return;
     }
 
-    // for now, kill off particles whose age > 20
-    int killed = Manager.KillParticles(Time);
     //cout << "ADDING!! " << endl;
     // generate particles if we can
     if(Manager.HasFreeParticles()) {
     //cout << "Manager.FreePLeft(): " << Manager.FreePLeft() << endl;
-        for(i = 0; i < Manager.FreePLeft() - 1 && i < Generator1.GetPNum() + Generator2.GetPNum(); i++) {
+        for(i = 0; i < Manager.FreePLeft() - 1 && i < Generator1.GetPNum(); i++) {
             Generator1.GenerateAttr(1);
-            Manager.UseParticle(Generator1.GenC0(), Generator1.GenV0(), Time, Generator1.GenC0(), Generator1.GenMass(), Generator1.GetCoefff(), Generator1.GetCoeffr(), AllowBlend);
-            Generator2.GenerateAttr(0);
-            Manager.UseParticle(Generator2.GenC0(), Generator2.GenV0(), Time, Generator2.GenC0(), Generator2.GenMass(), Generator2.GetCoefff(), Generator2.GetCoeffr(), AllowBlend);
+            Manager.UseParticle(Generator1.GenC0(), Vector(0,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
         }
     }
 
-    Manager.S.Force(Time, .0005, env);
+    //filebuf buf;
+    //buf.open(("testlog"), ios::out);
+    //streambuf* oldbuf = cout.rdbuf( &buf ) ;
 
-    // draw only if we are at a display time
-    if(NTimeSteps % TimeStepsPerDisplay == 0)
+    //Manager.S.PrintState();
+
     DrawScene(0);
+    Manager.S = RK4(Manager.S, .0005, Time, TimeStep);
 
-    Manager.S.SetState(TimeStep);
+    //Manager.S.PrintState();
+    //cout.rdbuf(oldbuf);
 
     // advance the real timestep
     Time += TimeStep;
-    NTimeSteps++;
 
 
     // set up time for next timestep if in continuous mode
@@ -275,12 +313,6 @@ void LoadParameters(char *filename){
     Generator1.SetVelocity(bvelocity);
     Generator1.SetModel();
 
-    Generator2.SetBaseAttr(2, bspeed, speedstd, bmass, bstd, bcolor, colstd, numofparticles, coefff, coeffr);
-    Generator2.SetCenterRadius(bcenter, genr);
-    Generator2.SetVelocity(bvelocity);
-    Generator2.SetModel();
-
-    TimeStepsPerDisplay = Max(1, int(DispTime / TimeStep + 0.5));
     TimerDelay = int(0.5 * TimeStep * 1000);
 }
 
@@ -291,7 +323,6 @@ void RestartSim(){
 
   LoadParameters(ParamFilename); // reload parameters in case changed
 
-  NTimeSteps = -1;
   glutIdleFunc(NULL);
   Time = 0;
 
@@ -312,14 +343,6 @@ void InitSimulation(int argc, char* argv[]){
 
   LoadParameters(argv[1]);
 
-  Pl.BuildPlane(Vector3d(-20, -10, 0), Vector3d(20, -10, 0), Vector3d(20, 20, -50), Vector3d(-20, 20, -50));
-
-  pa1.center.set(0, -15, 0);
-  pa1.g.set(-5,-5,-5);
-  pa1.r = 15;
-
-  NSteps = 0;
-  NTimeSteps = -1;
   Time = 0;
 }
 
@@ -580,11 +603,6 @@ void handleKey(unsigned char key, int x, int y){
       Manager.EnableBlend(AllowBlend);
       break;
 
-    case 't':
-    case 'T':
-      Toggle = !Toggle;
-      break;
-
     case 'r':
     case 'R':
         Manager.KillAll();
@@ -605,9 +623,10 @@ void handleKey(unsigned char key, int x, int y){
 //
 int main(int argc, char* argv[]){
 
+  InitSimulation(argc, argv);
+
   glutInit(&argc, argv);
 
-  InitSimulation(argc, argv);
   InitCamera();
 
   /* open window and establish coordinate system on it */

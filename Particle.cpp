@@ -79,7 +79,7 @@ void Particle::Draw() {
     } else {
         if(nhistory <= 1) {
             glEnable(GL_POINT_SMOOTH);
-                glBegin(GL_POINT);
+                glBegin(GL_POINTS);
                 glColor4f(A.GetColor().x, A.GetColor().y, A.GetColor().z, 0);
                 glVertex3f(history[0].x, history[0].y, history[0].z);
         } else {

@@ -12,31 +12,27 @@
 
 #include "Vector.h"
 
-struct Env {
-    Vector3d G;
-    Vector3d Wind;
-    double Viscosity;
- };
-
 class State {
 	private:
         int nmaxp;
 		Vector3d *StateVector;          // Vector of Vector3ds
-		Vector3d *X;
 
 	public:
         State();
 		~State();
+
+        void SetSize(int numofp);
+
 		State(const State& other);
 		State& operator= (const State& other);
-
-		void SetSize(int numofp);
 		Vector3d& operator[](int i);
+		State operator+ (const State& other);
+		State operator- (const State& other);
+		State operator* (const State& other);
+		State operator* (const double other);
+		State& operator+= (const State& other);
 
-        Vector3d Acceleration(float t, int indx, Env e);
-        void Force(float t, double m, Env e);
-
-        void SetState(float timestep);
+		int GetSize();
 
 		void AddState(int indx, Vector3d center, Vector3d velocity);
 		void MoveState(int indx, int maxindx);
