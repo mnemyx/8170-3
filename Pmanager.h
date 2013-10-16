@@ -40,6 +40,7 @@ class Pmanager {
 		int IsStarted();
 		int IsStep();
 		int GetNused();
+		int GetMaxParticles();
 
 		// determines if it has free particles
 		int HasFreeParticles();

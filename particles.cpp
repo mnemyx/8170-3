@@ -46,20 +46,21 @@ using namespace std;
 #define DRAWHEIGHT	150		//   height should be in same ratio as window)
 
 #define AMBIENT_FRACTION 0.1	// lighting
-#define DIFFUSE_FRACTION 0.4
-#define SPECULAR_FRACTION 0.4
+#define DIFFUSE_FRACTION 0.2
+#define SPECULAR_FRACTION 0.2
 
 
 /******************* SHADING & COLORS *****************************/
 const float BRIGHT_PALEBLUE[] = {0.5, 0.5, 1, 0.25};
+const float CRIMSON[] = {.86, .078, .235, 0.25};
 const float WHITE[] = {1, 1, 1, 1};
-const float VIOLET[] = {1, 0, 0.5, 1};
+const float VIOLET[] = {.78, 0.08, 0.521, 1};
 const float YELLOW[] = {1, 1, 0, 1};
-const float BG[] = {0, 0, 0};
+const float BG[] = {.18, .309, .309};
 
 float hues[][4] = { {1, 1, 1},    // white
 		    {0.5, 0.5, 1},    // dim paleblue
-		    {1, 0, 0.5, 0},  // violet
+		    {.86, .078, .235, 0},  // violet
 		    {1, 1, 0},    // yellow
 		  };
 
@@ -100,6 +101,7 @@ static double DispTime;
 static int TimerDelay;
 
 static double Time = 0;
+static int NTimeSteps = -1;
 
 Pmanager Manager;
 Pgenerator Generator1;
@@ -137,7 +139,7 @@ void GetShading(int hueIndx) {
 		ambient_color[i] = AMBIENT_FRACTION * hues[hueIndx][i];
 		diffuse_color[i] = DIFFUSE_FRACTION * hues[hueIndx][i];
 		specular_color[i] = SPECULAR_FRACTION * hues[0][i];
-		shininess = 60;
+		shininess = 0;
 	}
 
     glMaterialfv(GL_FRONT, GL_AMBIENT, ambient_color);
@@ -150,7 +152,8 @@ void GetShading(int hueIndx) {
 // Draw the moving objects
 //
 void DrawMovingObj() {
-    Manager.DrawSystem();
+    GetShading(2);
+    Manager.DrawSystem(NTimeSteps%2);
 }
 
 //
@@ -171,7 +174,7 @@ void DrawScene(int collision){
   glClear(GL_COLOR_BUFFER_BIT);
   glClear(GL_DEPTH_BUFFER_BIT);
 
-  DrawNonMovingObj();
+  //DrawNonMovingObj();
   DrawMovingObj();
 
   glutSwapBuffers();
@@ -411,13 +414,13 @@ void Simulate(){
     // generate particles if we can
     if(Manager.HasFreeParticles()) {
     //cout << "Manager.FreePLeft(): " << Manager.FreePLeft() << endl;
-        for(i = 0; i < 40; i++) {
+        for(i = 0; i < Manager.GetMaxParticles(); i++) {
             Generator1.GenerateAttr(0);
             Generator2.GenerateAttr(0);
             if(i == 0)
             Manager.UseParticle(Vector(20, 5,0), Vector(2,0,0), Time, Vector(1,0,0,1), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
             else {
-                if( i < 20 )
+                if( i < (Manager.GetMaxParticles()/2) )
                 Manager.UseParticle(Generator1.GenC0(), Vector(1,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
                 else
                 Manager.UseParticle(Generator2.GenC0(), Vector(1,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
@@ -425,30 +428,20 @@ void Simulate(){
         }
     }
 
-    //  lissajous dampened:
-    //  t (
-    //      ampA * sin(freqA * t + phasephi),
-    //      ampB * sin(freqB * t + phasetri),
-    //      ampC * sin(freqC * t + phasex))
-
     //filebuf buf;
     //buf.open(("testlog"), ios::out);
     //streambuf* oldbuf = cout.rdbuf( &buf ) ;
 
     //Manager.S.PrintState();
-    Manager.S.PrintState();
-
-    cout << "Before & After " << endl;
-
+    //cout << "Before & After " << endl;
     DrawScene(0);
     Manager.S = RK4(Manager.S, 1, Time, TimeStep);
-    Manager.S.PrintState();
-
-    //Manager.S.PrintState();
+   // Manager.S.PrintState();
     //cout.rdbuf(oldbuf);
 
     // advance the real timestep
     Time += TimeStep;
+    NTimeSteps++;
 
 
     // set up time for next timestep if in continuous mode
@@ -477,9 +470,7 @@ void LoadParameters(char *filename){
 
     FILE *paramfile;
 
-    double numofparticles, bspeed, speedstd, bmass, bstd, colstd, coeffr, coefff, genr, psize, blendsize;
-    Vector3d  bcenter, bvelocity;
-    Vector4d bcolor;
+    double psize;
 
     if((paramfile = fopen(filename, "r")) == NULL){
         fprintf(stderr, "error opening parameter file %s\n", filename);
@@ -488,30 +479,20 @@ void LoadParameters(char *filename){
 
     ParamFilename = filename;
 
-    if(fscanf(paramfile, "%lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf %lf",
-    &TimeStep, &DispTime, &numofparticles, &psize, &blendsize,
-    &bspeed, &speedstd,
-    &bmass, &bstd,
-    &(bcolor.x), &(bcolor.y), &(bcolor.z), &(bcolor.w), &colstd,
-    &coeffr, &coefff,
-    &(bcenter.x), &(bcenter.y), &(bcenter.z), &genr,
-    &(bvelocity.x), &(bvelocity.y), &(bvelocity.z),
-    &(env.Wind.x), &(env.Wind.y), &(env.Wind.z),
-    &(env.G.x), &(env.G.y), &(env.G.z),
-    &env.Viscosity) != 30){
+    if(fscanf(paramfile, "%lf %lf", &TimeStep, &psize)!= 2){
         fprintf(stderr, "error reading parameter file %s\n", filename);
         fclose(paramfile);
         exit(1);
     }
 
-    Manager.SetMaxPart((int)psize, (int)blendsize);
+    Manager.SetMaxPart((int)psize, 1);
 
-    Generator1.SetBaseAttr(4, bspeed, speedstd, bmass, bstd, bcolor, colstd, numofparticles, coefff, coeffr);
-    Generator1.SetPlanePts(Vector(-80,-40,-10), Vector(-80,40,-10), Vector(80,40,-10), Vector(80,-40,-10));
+    Generator1.SetBaseAttr(4, 0.0, 0.0, 0.0, 0.0, Vector(0,0,0,1), 0.0, 0.0, 0.0, 0.0);
+    Generator1.SetPlanePts(Vector(-80,-80,-10), Vector(-80,60,-10), Vector(80,80,-10), Vector(80,-80,-10));
     Generator1.SetModel();
 
-    Generator2.SetBaseAttr(4, bspeed, speedstd, bmass, bstd, bcolor, colstd, numofparticles, coefff, coeffr);
-    Generator2.SetPlanePts(Vector(80,40,-10), Vector(80,-40,-10), Vector(-80,-40,-10), Vector(-80,40,-10));
+    Generator2.SetBaseAttr(4, 0.0, 0.0, 0.0, 0.0, Vector(0,0,0,1), 0.0, 0.0, 0.0, 0.0);
+    Generator2.SetPlanePts(Vector(80,80,-10), Vector(80,-60,-10), Vector(-80,-80,-10), Vector(-80,80,-10));
     Generator2.SetModel();
 
     TimerDelay = int(0.5 * TimeStep * 1000);
@@ -526,7 +507,7 @@ void RestartSim(){
 
   glutIdleFunc(NULL);
   Time = 0;
-
+  NTimeSteps = -1;
   DrawScene(0);
 }
 
@@ -545,6 +526,7 @@ void InitSimulation(int argc, char* argv[]){
   LoadParameters(argv[1]);
 
   Time = 0;
+  NTimeSteps = -1;
 
   srand48(time(0));
 }
@@ -574,8 +556,8 @@ void InitCamera() {
 //  On Redraw request, erase the window and redraw everything
 //
 void drawDisplay(){
-  // distant light source, parallel rays coming from front upper right
-  const float light_position1[] = {0, 1, 0, 0};
+  const float light_position1[] = {-1, -3, -1, 1};
+  const float light_position2[] = {1, 3, 1, 0};
 
   // clear the window to the background color
   glClear(GL_COLOR_BUFFER_BIT);
@@ -586,12 +568,18 @@ void drawDisplay(){
   // light is positioned in camera space so it does not move with object
   glLoadIdentity();
   glLightfv(GL_LIGHT0, GL_POSITION, light_position1);
-  glLightfv(GL_LIGHT0, GL_AMBIENT, WHITE);
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, WHITE);
-  glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE);
+  glLightfv(GL_LIGHT0, GL_AMBIENT, CRIMSON);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, CRIMSON);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, CRIMSON);
+
+  glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
+  glLightfv(GL_LIGHT1, GL_AMBIENT, VIOLET);
+  glLightfv(GL_LIGHT1, GL_DIFFUSE, VIOLET);
+  glLightfv(GL_LIGHT1, GL_SPECULAR, VIOLET);
 
   glEnable(GL_LIGHTING);
   glEnable(GL_LIGHT0);
+  glEnable(GL_LIGHT1);
 
   // establish camera coordinates
   glRotatef(Tilt, 1, 0, 0);	    // tilt - rotate camera about x axis
@@ -837,7 +825,7 @@ int main(int argc, char* argv[]){
   /* open window and establish coordinate system on it */
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
   glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-  glutCreateWindow("Particle Simulation");
+  glutCreateWindow("I think I like butterflies too much (aka flocking simulation)");
 
   /* register display and mouse-button callback routines */
   glutReshapeFunc(doReshape);
