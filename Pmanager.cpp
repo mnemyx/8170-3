@@ -169,29 +169,87 @@ int Pmanager::KillParticles(double ts) {
     return cnt;
 }
 
-void Pmanager::DrawSystem() {
+void Pmanager::DrawSystem(int odd) {
 	int i;
 
-	glDisable(GL_LIGHTING);
+	glEnable(GL_LIGHTING);
     glEnable(GL_SMOOTH);
     glEnable(GL_BLEND);
 
-    glEnable(GL_POINT_SMOOTH);
+    //glEnable(GL_POINT_SMOOTH);
 
-    glBegin(GL_POINTS);
+    //glBegin(GL_POINTS);
 
+    glShadeModel(GL_SMOOTH);
+
+    Vector3d ux, uy, uz, vel, up;
+    GLfloat r[16] = {0};
+    //GLfloat shear[16] = {1, }
+    up.set(0,1,0);
+
+    //glMatrixMode(GL_MODELVIEW);
+    //glLoadIdentity();
 
 	for ( i = 0; i < nused; i++ ) {
-        cout << "x: " << S[i].x << " y: " << S[i].y << " z: " <<  S[i].z << endl;
-        glColor4f(255,255,255,1);
-        glVertex3f(S[i].x, S[i].y, S[i].z);
+        //cout << "x: " << S[i].x << " y: " << S[i].y << " z: " <<  S[i].z << endl;
+        //glBegin(GL_TRIANGLES)
+        //if(i == 0) glColor4f(255,255,255,1);
+        //else glColor4f(255,0,0,1);
+        //glVertex3f(S[i].x, S[i].y, S[i].z);
+
+        vel = S[i + nmaxparticles];
+
+        ux = vel.normalize();
+        uz = (vel % up).normalize();
+        uy = uz % ux;
+
+        r[0] = ux.x; r[1] = ux.y; r[2] = ux.z; r[3] = 0;
+        r[4] = uy.x; r[5] = uy.y; r[6] = uy.z; r[7] = 0;
+        r[8] = uz.x; r[9] = uz.y; r[10] = uz.z; r[11] = 0;
+        r[12] = 0; r[13] = 0; r[14] = 0; r[15] = 1;
+
+        glPushMatrix();
+        glScalef(.5,.5,.75);
+        glMultMatrixf(r);
+
+            glBegin(GL_TRIANGLES);
+                glColor3f(0.1, 0.2, 0.3);
+                glVertex3f(S[i].x, S[i].y, S[i].z);
+                glColor3f(0.4, 0.5, 0.6);
+                glVertex3f(S[i].x+4, S[i].y+5, S[i].z);
+                glColor3f(0.7, 0.8, 0.9);
+                glVertex3f(S[i].x+3, S[i].y+1, S[i].z);
+
+                glColor3f(0.1, 0.2, 0.3);
+                glVertex3f(S[i].x, S[i].y, S[i].z);
+                glColor3f(0.4, 0.5, 0.6);
+                glVertex3f(S[i].x-4, S[i].y+5, S[i].z);
+                glColor3f(0.7, 0.8, 0.9);
+                glVertex3f(S[i].x-3, S[i].y+1, S[i].z);
+
+                glColor3f(0.1, 0.2, 0.3);
+                glVertex3f(S[i].x, S[i].y, S[i].z);
+                glColor3f(0.4, 0.5, 0.6);
+                glVertex3f(S[i].x+2, S[i].y-8, S[i].z);
+                glColor3f(0.7, 0.8, 0.9);
+                glVertex3f(S[i].x+4, S[i].y-1, S[i].z);
+
+                glColor3f(0.1, 0.2, 0.3);
+                glVertex3f(S[i].x, S[i].y, S[i].z);
+                glColor3f(0.4, 0.5, 0.6);
+                glVertex3f(S[i].x-2, S[i].y-8, S[i].z);
+                glColor3f(0.7, 0.8, 0.9);
+                glVertex3f(S[i].x-4, S[i].y-1, S[i].z);
+            glEnd();
+
+        glPopMatrix();
     }
 
-    glEnd();
+    //glEnd();
 
-    glDisable(GL_BLEND);
-	glDisable(GL_SMOOTH);
-	glEnable(GL_LIGHTING);
+    //glDisable(GL_BLEND);
+	//glDisable(GL_SMOOTH);
+	//glEnable(GL_LIGHTING);
 }
 
 

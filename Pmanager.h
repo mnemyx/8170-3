@@ -57,7 +57,7 @@ class Pmanager {
         void EnableBlend(int bs);
 
 		// draws all the used particles
-		void DrawSystem();
+		void DrawSystem(int odd);
 };
 
 #endif

@@ -69,6 +69,7 @@ class Pgenerator {
 		void GenerateAttr(int spdir);
 		Vector4d GenerateColor(Vector4d c);
 		void MoveGenerator(double timestep);
+		void DrawGenerator();
 
 		// technically getters
 		Vector3d GenV0();

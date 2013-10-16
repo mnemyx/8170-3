@@ -217,3 +217,7 @@ void Pgenerator::PrintGen() {
     GeneratedColor.print();
     cout << endl << "GENERATED MASS: " << GeneratedMass << endl;
 }
+
+void Pgenerator::DrawGenerator() {
+    Shape.Draw(1);
+}

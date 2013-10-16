@@ -7,6 +7,7 @@
 #include "Pmanager.h"
 #include "Pgenerator.h"
 #include "Entity.h"
+#include "time.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -102,6 +103,7 @@ static double Time = 0;
 
 Pmanager Manager;
 Pgenerator Generator1;
+Pgenerator Generator2;
 
 static int AllowBlend = true;
 
@@ -113,9 +115,9 @@ struct Env {
 
 
 /** avoidance constants **/
-double Ka = 2.5;
-double Kv = 2.5;
-double Kc = 2.5;
+double Ka = 2;
+double Kv = 1;
+double Kc = 2;
 
 /************** DRAWING & SHADING FUNCTIONS ***********************/
 //
@@ -155,6 +157,7 @@ void DrawMovingObj() {
 // Draw the non moving objects
 //
 void DrawNonMovingObj() {
+    Generator1.DrawGenerator();
 }
 
 //
@@ -168,7 +171,7 @@ void DrawScene(int collision){
   glClear(GL_COLOR_BUFFER_BIT);
   glClear(GL_DEPTH_BUFFER_BIT);
 
-  //DrawNonMovingObj();
+  DrawNonMovingObj();
   DrawMovingObj();
 
   glutSwapBuffers();
@@ -181,65 +184,159 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
     Vector3d acc;
     Vector3d xij, uij;
     Vector3d aaij, avij, acij, ai;
+    Vector3d yforce, xforce, zforce;
+    Vector3d ptu, ptacc, ptcenter;
+    double ptd, ptg;
     int i;
     double Dij, dij, aa, av, ac, amax, ares;
-    double r1 = 10.0;
-    double r2 = 20.0;
+    double r1 = 20.0;
+    double r2 = 40.0;
 
     if (env.Wind.x == 0 && env.Wind.y == 0 && env.Wind.z == 0)
         acc = env.G - env.Viscosity * s[indx + nmaxp];
     else
         acc = env.G + env.Viscosity * (env.Wind - s[indx + nmaxp]);
+    //cout << "before ";
+    //acc.print();
+    //cout << endl;
 
     if(indx != 0 ) {
         for (i = 0; i < nmaxp; i++) {
             if (i != indx) {
-                cout << "i: " << i << endl;
-                cout << " indx: " << indx << endl;
+
+                /**
+                if(i == 0){
+
+                //point attractor at center
+                    ptcenter = s[i];
+                    ptd = (s[indx] - ptcenter).norm();
+                    ptu = (s[indx] - ptcenter).normalize();
+                    ptg = 9.86;
+
+                    ptacc = - ptg * (1.0 / ptd * ptd) * ptu;
+                    acc = acc + ptacc;
+
+
+                } else {
+                **/
+                //cout << "i: " << i << " indx: " << indx << endl;
                 xij = s[i] - s[indx];
+                //cout << "s[i]: " << s[i] << endl;
+                //cout << "s[indx]: " << s[indx] << endl;
+                //cout << "xij " << xij << endl;
+
                 dij = xij.norm();
                 uij = xij.normalize();
 
-                cout << " dij: " << dij << endl;
+                if(dij < 40 || i == 0) {
 
-                if(dij <= r1) Dij = 1.0;
-                else if (dij > r2) Dij = 0.0;
-                else {
-                    Dij = 1.0 - (dij - r1) / (r2 - r1);
-                }
+                    //cout << " dij: " << dij << endl;
 
-                cout << Dij << endl;
+                    //if(i == 0) {
+                        //Dij = 1;
+                    //} else {
+                        if(dij <= r1) Dij = 1.0;
+                        else if (dij > r2) Dij = 0.0;
+                        else Dij = 1.0 - (dij - r1) / (r2 - r1);
+                    //}
 
-                aaij = -Dij/m * Ka/dij * uij;
-                avij = Dij/m * Kv * (s[i + nmaxp] - s[indx + nmaxp]);
-                acij = Dij/m * Kc * dij * uij;
+                    //cout << Dij << endl;
 
-                amax = 10.0;
+                    if(i == 0) Kv = 0.0; else Kv = 1;
+                    aaij = -Dij/m * Ka/dij * uij;
+                    avij = Dij/m * Kv * (s[i + nmaxp] - s[indx + nmaxp]);
+                    acij = Dij/m * Kc * dij * uij;
 
-                aa = min(aaij.norm(), amax);
-                ares = amax - aa;
+                    amax = 5.0;
 
-                if(ares > 0) {
-                    av = min(avij.norm(), ares);
-                    ares = ares - av;
+                    aa = min(aaij.norm(), amax);
+                    ares = amax - aa;
 
                     if(ares > 0) {
-                        ac = min(acij.norm(), ares);
+                        av = min(avij.norm(), ares);
+                        ares = ares - av;
+
+                        if(ares > 0) {
+                            ac = min(acij.norm(), ares);
+                        } else {
+                            ac = 0.0;
+                        }
                     } else {
-                        ac = 0.0;
+                        av = 0.0;
                     }
-                } else {
-                    av = 0.0;
+
+                    ai = aa * uij + av * uij + ac * uij;
+
+                    acc = acc + ai;
                 }
-
-                ai = aa * uij + av * uij + ac * uij;
-
-                acc = acc + ai;
             }
+            //}
         }
+
+        acc.y = 0;
+
+    } else {
+
     }
 
+     //point attractor at center
+    ptcenter.set(0,0,0);
+    ptd = (s[indx] - ptcenter).norm();
+    ptu = (s[indx] - ptcenter).normalize();
+    ptg = 5;
+
+
+    ptacc = - ptg * ptu;
+    acc = acc + ptacc;
+
+
+    if(-40 - s[indx].y > 0 ) {
+        //yforce = 1.0/(-60 - s[indx].y) * (10/m) * Vector(0,1,0);
+        //acc = acc + yforce;
+        acc.y = 3;
+    } else if (40 - s[indx].y < 0 ) {
+        //yforce = 1.0/(-60 - s[indx].y) * (10/m) * Vector(0,-1,0);
+        //acc = acc + yforce;
+        acc.y = -3;
+    }
+
+    if(-60 - s[indx].x > 0 ) {
+        //xforce = 1.0/(-60 - s[indx].x) * (10/m) * Vector(1,0,0);
+        //acc = acc + xforce;
+        //acc.x = acc.x + 1.0/(-60 - s[indx].x) * acc.x;
+        acc.x = 3;
+    } else if (60 - s[indx].x < 0 ) {
+        //xforce = 1.0/(-60 - s[indx].x) * (10/m) * Vector(-1,0,0);
+        //acc = acc + xforce;
+        //acc.x = acc.x - 1.0/(-60 - s[indx].x) * acc.x;
+        acc.x = -3;
+    }
+
+    if(-60 - s[indx].z > 0 ) {
+        //zforce = 1.0/(-60 - s[indx].z) * (10/m) * Vector(0,0,1);
+        //acc = acc + zforce;
+        //acc.z = acc.z + 1.0/(-60 - s[indx].z) * acc.z;
+        acc.z = 3;
+    } else if (60 - s[indx].x < 0 ) {
+        //zforce = 1.0/(-60 - s[indx].z) * (10/m) * Vector(0,0,-1);
+        //acc = acc + zforce;
+        //acc.z = acc.z - 1.0/(-60 - s[indx].z) * acc.z;
+        acc.z = -3;
+    }
+
+
+    //acc.print();
+    //cout << " after"<< endl;
+
     return acc;
+}
+
+Vector3d Displace(int a, int b) {
+    Vector3d temp;
+
+    temp.set(fmod((a + drand48()), (b - a)), fmod((a + drand48()), (b - a)), fmod((a + drand48()), (b - a)));
+
+    return temp;
 }
 
 
@@ -251,8 +348,8 @@ State F(State s, double m, double t) {
     x.SetSize(nmaxp);
 
     for (i = 0; i < nmaxp; i++) {
-        if(i == 1) { // our guiding boid
-            // x[i] = s[nmaxp + i];
+        //if(i == 0) { // our guiding boid
+            //x[i] = s[nmaxp + i];
 
             // steering force = desired velocity - current velocity
             // what would the resulting velocity if the collision were to occur?
@@ -263,12 +360,14 @@ State F(State s, double m, double t) {
             //      ampB * sin(freqB * t + phasetri),
             //      ampC * sin(freqC * t + phasex)
 
-            x[i].x = x[i].x + (100 * (sin(1.5 * t + 30)));
-            x[i].y = x[i].y + (20 * (sin(6 * t + 90)));
-            x[i].z = x[i].z + (100 * (sin(1 * t + 30)));
-        } else {
-            x[i] = s[nmaxp + i];
-        }
+            //x[i].x = x[i].x + (100 * (sin(1.5 * t + 30)));
+            //x[i].y = x[i].y + (20 * (sin(.5 * t + 90)));
+            //x[i].z = x[i].z + (100 * (sin(1 * t + 30)));
+
+        //} else {
+            x[i] = s[nmaxp + i]  + Displace(-5, 6);
+
+        //}
 
         x[nmaxp + i] = (1 / m) * Accelerate(s, t, m, i);
     }
@@ -312,9 +411,17 @@ void Simulate(){
     // generate particles if we can
     if(Manager.HasFreeParticles()) {
     //cout << "Manager.FreePLeft(): " << Manager.FreePLeft() << endl;
-        for(i = 0; i < 5; i++) {
-            Generator1.GenerateAttr(1);
-            Manager.UseParticle(Vector(1,1,1), Vector(0,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+        for(i = 0; i < 40; i++) {
+            Generator1.GenerateAttr(0);
+            Generator2.GenerateAttr(0);
+            if(i == 0)
+            Manager.UseParticle(Vector(20, 5,0), Vector(2,0,0), Time, Vector(1,0,0,1), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+            else {
+                if( i < 20 )
+                Manager.UseParticle(Generator1.GenC0(), Vector(1,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+                else
+                Manager.UseParticle(Generator2.GenC0(), Vector(1,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+            }
         }
     }
 
@@ -329,9 +436,13 @@ void Simulate(){
     //streambuf* oldbuf = cout.rdbuf( &buf ) ;
 
     //Manager.S.PrintState();
+    Manager.S.PrintState();
+
+    cout << "Before & After " << endl;
 
     DrawScene(0);
     Manager.S = RK4(Manager.S, 1, Time, TimeStep);
+    Manager.S.PrintState();
 
     //Manager.S.PrintState();
     //cout.rdbuf(oldbuf);
@@ -395,10 +506,13 @@ void LoadParameters(char *filename){
 
     Manager.SetMaxPart((int)psize, (int)blendsize);
 
-    Generator1.SetBaseAttr(2, bspeed, speedstd, bmass, bstd, bcolor, colstd, numofparticles, coefff, coeffr);
-    Generator1.SetCenterRadius(bcenter, genr);
-    Generator1.SetVelocity(bvelocity);
+    Generator1.SetBaseAttr(4, bspeed, speedstd, bmass, bstd, bcolor, colstd, numofparticles, coefff, coeffr);
+    Generator1.SetPlanePts(Vector(-80,-40,-10), Vector(-80,40,-10), Vector(80,40,-10), Vector(80,-40,-10));
     Generator1.SetModel();
+
+    Generator2.SetBaseAttr(4, bspeed, speedstd, bmass, bstd, bcolor, colstd, numofparticles, coefff, coeffr);
+    Generator2.SetPlanePts(Vector(80,40,-10), Vector(80,-40,-10), Vector(-80,-40,-10), Vector(-80,40,-10));
+    Generator2.SetModel();
 
     TimerDelay = int(0.5 * TimeStep * 1000);
 }
@@ -431,6 +545,8 @@ void InitSimulation(int argc, char* argv[]){
   LoadParameters(argv[1]);
 
   Time = 0;
+
+  srand48(time(0));
 }
 
 //
