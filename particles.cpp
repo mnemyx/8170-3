@@ -107,16 +107,16 @@ Pmanager Manager;
 Pgenerator Generator1;
 Pgenerator Generator2;
 
-static int AllowBlend = true;
-
 struct Env {
     Vector3d G;
     Vector3d Wind;
     double Viscosity;
  } env;
 
+static int ProcessClick = 0;
+static int Quadrant = -1;
 
-/** avoidance constants **/
+/***********************  avoidance constants *********************/
 double Ka = 2;
 double Kv = 1;
 double Kc = 2;
@@ -181,6 +181,13 @@ void DrawScene(int collision){
 }
 
 /********************* CALLED BY SIMULATE() ***********************/
+Vector3d Displace(int a, int b) {
+    Vector3d temp;
+
+    temp.set(fmod((a + drand48()), (b - a)), fmod((a + drand48()), (b - a)), fmod((a + drand48()), (b - a)));
+
+    return temp;
+}
 
 Vector3d Accelerate(State s, double  t, double m, int indx) {
     int nmaxp = s.GetSize();
@@ -278,6 +285,37 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
 
         acc.y = 0;
 
+        if(ProcessClick) {
+            //cout << "processing click" << endl;
+            ProcessClick = false;
+
+            double cpd;
+            Vector3d cpu, cpacc, cpcen;
+            double cpg = -10;
+
+            switch(Quadrant) {
+                case 0: cpcen.set(0,0,0); break;
+                case 1: cpcen.set(40,40,40); break;
+                case 2: cpcen.set(40,-40,40); break;
+                case 3: cpcen.set(-40,-40,40); break;
+                case 4: cpcen.set(-40,40,40); break;
+                case 5: cpcen.set(40,40,-40); break;
+                case 6: cpcen.set(40,-40,-40); break;
+                case 7: cpcen.set(-40,-40,-40); break;
+                case 8: cpcen.set(-40,40,-40); break;
+                case 9: cpcen.set(Displace(-80, 81)); break;
+                default: cpcen.set(Displace(-80, 81)); break;
+            }
+
+            cpd = (s[indx] - cpcen).norm();
+            cpu = (s[indx] - cpcen).normalize();
+
+            if (cpd < 20) {
+                cpacc = - cpg * (1/(cpd*cpd)) * cpu;
+                acc = acc + cpacc;
+            }
+        }
+
     } else {
 
     }
@@ -333,15 +371,6 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
 
     return acc;
 }
-
-Vector3d Displace(int a, int b) {
-    Vector3d temp;
-
-    temp.set(fmod((a + drand48()), (b - a)), fmod((a + drand48()), (b - a)), fmod((a + drand48()), (b - a)));
-
-    return temp;
-}
-
 
 State F(State s, double m, double t) {
     int i;
@@ -494,6 +523,10 @@ void LoadParameters(char *filename){
     Generator2.SetBaseAttr(4, 0.0, 0.0, 0.0, 0.0, Vector(0,0,0,1), 0.0, 0.0, 0.0, 0.0);
     Generator2.SetPlanePts(Vector(80,80,-10), Vector(80,-60,-10), Vector(-80,-80,-10), Vector(-80,80,-10));
     Generator2.SetModel();
+
+    env.G.set(0,0,0);
+    env.Wind.set(0,0,0);
+    env.Viscosity = 0;
 
     TimerDelay = int(0.5 * TimeStep * 1000);
 }
@@ -724,6 +757,32 @@ void handleButton(int button, int state, int x, int y){
       MouseX = x;
 
       Button = button;		// store which button pressed
+
+        // attempting interactive mode...
+        /**
+        GLint viewport[4];
+            glGetIntegerv(GL_VIEWPORT, viewport);
+        GLdouble modelview[16];
+            glGetDoublev(GL_MODELVIEW_MATRIX, modelview);
+        GLdouble projection[16];
+            glGetDoublev(GL_PROJECTION_MATRIX, projection);
+        GLfloat winX, winY, winZ;
+
+        AdjustMouse(x, y);
+        winX = (float)x;
+        winY = (float)y;
+        glReadPixels(winX, winY, 1, 1, GL_DEPTH_COMPONENT, GL_FLOAT, &winZ);
+
+        GLdouble posX, posY, posZ;
+
+        gluUnProject(winX, winY, winZ, modelview, projection, viewport, &posX, &posY, &posZ);
+
+        ProcessClick = true;
+        ClickXYZ.set(posX/2,posY/2,posZ/2);
+
+        cout << ClickXYZ << endl;
+        **/
+
     }
 
   }
@@ -790,10 +849,54 @@ void handleKey(unsigned char key, int x, int y){
       else glutDetachMenu(GLUT_RIGHT_BUTTON);
       break;
 
-    case 'b':
-    case 'B':
-      AllowBlend = !AllowBlend;
-      Manager.EnableBlend(AllowBlend);
+    case '1':
+      ProcessClick = true;
+      Quadrant = 1;
+      break;
+
+    case '2':
+      ProcessClick = true;
+      Quadrant = 2;
+      break;
+
+    case '3':
+      ProcessClick = true;
+      Quadrant = 3;
+      break;
+
+    case '4':
+      ProcessClick = true;
+      Quadrant = 4;
+      break;
+
+    case '5':
+      ProcessClick = true;
+      Quadrant = 5;
+      break;
+
+    case '6':
+      ProcessClick = true;
+      Quadrant = 6;
+      break;
+
+    case '7':
+      ProcessClick = true;
+      Quadrant = 7;
+      break;
+
+    case '8':
+      ProcessClick = true;
+      Quadrant = 8;
+      break;
+
+    case '9':
+      ProcessClick = true;
+      Quadrant = 9;
+      break;
+
+    case '0':
+      ProcessClick = true;
+      Quadrant = 0;
       break;
 
     case 'r':
