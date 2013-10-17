@@ -56,7 +56,7 @@ const float CRIMSON[] = {.86, .078, .235, 0.25};
 const float WHITE[] = {1, 1, 1, 1};
 const float VIOLET[] = {.78, 0.08, 0.521, 1};
 const float YELLOW[] = {1, 1, 0, 1};
-const float BG[] = {.18, .309, .309};
+const float BG[] = {.5,.5,.5};
 
 float hues[][4] = { {1, 1, 1},    // white
 		    {0.5, 0.5, 1},    // dim paleblue
@@ -117,9 +117,9 @@ static int ProcessClick = 0;
 static int Quadrant = -1;
 
 /***********************  avoidance constants *********************/
-double Ka = 2;
-double Kv = 1;
-double Kc = 2;
+double Ka = 1;
+double Kv = .5;
+double Kc = .75;
 
 /************** DRAWING & SHADING FUNCTIONS ***********************/
 //
@@ -199,8 +199,8 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
     double ptd, ptg;
     int i;
     double Dij, dij, aa, av, ac, amax, ares;
-    double r1 = 20.0;
-    double r2 = 40.0;
+    double r1 = 15.0;
+    double r2 = 30.0;
 
     if (env.Wind.x == 0 && env.Wind.y == 0 && env.Wind.z == 0)
         acc = env.G - env.Viscosity * s[indx + nmaxp];
@@ -214,21 +214,6 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
         for (i = 0; i < nmaxp; i++) {
             if (i != indx) {
 
-                /**
-                if(i == 0){
-
-                //point attractor at center
-                    ptcenter = s[i];
-                    ptd = (s[indx] - ptcenter).norm();
-                    ptu = (s[indx] - ptcenter).normalize();
-                    ptg = 9.86;
-
-                    ptacc = - ptg * (1.0 / ptd * ptd) * ptu;
-                    acc = acc + ptacc;
-
-
-                } else {
-                **/
                 //cout << "i: " << i << " indx: " << indx << endl;
                 xij = s[i] - s[indx];
                 //cout << "s[i]: " << s[i] << endl;
@@ -283,7 +268,7 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
             //}
         }
 
-        acc.y = 0;
+        //acc.y = 0;
 
         if(ProcessClick) {
             //cout << "processing click" << endl;
@@ -318,47 +303,47 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
 
     } else {
 
+        //point attractor at center
+        ptcenter.set(0,0,0);
+        ptd = (s[indx] - ptcenter).norm();
+        ptu = (s[indx] - ptcenter).normalize();
+        ptg = 5;
+
+
+        ptacc = - ptg * ptu;
+        acc = acc + ptacc;
+
     }
 
-     //point attractor at center
-    ptcenter.set(0,0,0);
-    ptd = (s[indx] - ptcenter).norm();
-    ptu = (s[indx] - ptcenter).normalize();
-    ptg = 5;
 
-
-    ptacc = - ptg * ptu;
-    acc = acc + ptacc;
-
-
-    if(-40 - s[indx].y > 0 ) {
+    if(-70 - s[indx].y > 0 ) {
         //yforce = 1.0/(-60 - s[indx].y) * (10/m) * Vector(0,1,0);
         //acc = acc + yforce;
         acc.y = 3;
-    } else if (40 - s[indx].y < 0 ) {
+    } else if (70 - s[indx].y < 0 ) {
         //yforce = 1.0/(-60 - s[indx].y) * (10/m) * Vector(0,-1,0);
         //acc = acc + yforce;
         acc.y = -3;
     }
 
-    if(-60 - s[indx].x > 0 ) {
+    if(-70 - s[indx].x > 0 ) {
         //xforce = 1.0/(-60 - s[indx].x) * (10/m) * Vector(1,0,0);
         //acc = acc + xforce;
         //acc.x = acc.x + 1.0/(-60 - s[indx].x) * acc.x;
-        acc.x = 3;
-    } else if (60 - s[indx].x < 0 ) {
+        //acc.x = 3;
+    } else if (70 - s[indx].x < 0 ) {
         //xforce = 1.0/(-60 - s[indx].x) * (10/m) * Vector(-1,0,0);
         //acc = acc + xforce;
         //acc.x = acc.x - 1.0/(-60 - s[indx].x) * acc.x;
         acc.x = -3;
     }
 
-    if(-60 - s[indx].z > 0 ) {
+    if(-70 - s[indx].z > 0 ) {
         //zforce = 1.0/(-60 - s[indx].z) * (10/m) * Vector(0,0,1);
         //acc = acc + zforce;
         //acc.z = acc.z + 1.0/(-60 - s[indx].z) * acc.z;
         acc.z = 3;
-    } else if (60 - s[indx].x < 0 ) {
+    } else if (70 - s[indx].x < 0 ) {
         //zforce = 1.0/(-60 - s[indx].z) * (10/m) * Vector(0,0,-1);
         //acc = acc + zforce;
         //acc.z = acc.z - 1.0/(-60 - s[indx].z) * acc.z;
@@ -447,7 +432,7 @@ void Simulate(){
             Generator1.GenerateAttr(0);
             Generator2.GenerateAttr(0);
             if(i == 0)
-            Manager.UseParticle(Vector(20, 5,0), Vector(2,0,0), Time, Vector(1,0,0,1), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+            Manager.UseParticle(Vector(25, 5,0), Vector(2,0,0), Time, Vector(1,0,0,1), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
             else {
                 if( i < (Manager.GetMaxParticles()/2) )
                 Manager.UseParticle(Generator1.GenC0(), Vector(1,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
