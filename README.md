@@ -27,7 +27,17 @@ KEY COMMANDS
 	m or M		IMPORTANT: transforming camera view to simulation control (default: camera)
 	p or P		switches from ortho to perspective views (default: perspective)
 	r or R      	resets the simulation, so if you change parameters - this will re-read them
-	b or B		changs from blend to non-blend mode
+	1 to 0		should trigger a dispersing force
+				1 = +X, +Y, +Z quadrant
+				2 = +X, -Y, +Z quadrant
+				3 = -X, -Y, +Z quadrant
+				4 = -X, +Y, +Z quadrant
+				5 = +X, +Y, -Z quadrant
+				6 = +X, -Y, -Z quadrant
+				7 = -X, -Y, -Z quadrant
+				8 = -X, +Y, -Z quadrant
+				9 = random point...somewhere...over the rainbow
+				0 = center of dispersal force is (0,0,0)
 	q or ESC	quit
 
 
@@ -53,12 +63,13 @@ MENU COMMANDS
 FILES
 ==================================================================
 	particles.cpp (main program)
+	State.h, State.cpp
 	Model.cpp, Model.h
 	Entity.cpp, Entity.h
 	Attributes.cpp, Attributes.h
 	Pgenerator.cpp, Pgenerator.h
 	Pmanager.cpp, Pmanager.h,
-	Particle.cpp, Particl.h
+	Particle.cpp, Particle.h
 
 
 MISC FILES
@@ -69,13 +80,14 @@ MISC FILES
 	Utility.cpp, Utility.h
 	Vector.cpp, Vector.h
 	gauss.cpp, gauss.h
+	p
 
 
 SAMPLE OUTPUT FILES
 ==================================================================
-	N/A
+	screencap.png
 
 
 TOTAL FILE COUNT
 ==================================================================
-26
+29
