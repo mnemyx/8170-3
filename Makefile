@@ -12,10 +12,10 @@ H	= h
 CFLAGS 	= -g
 
 ifeq ("$(shell uname)", "Darwin")
-  LDFLAGS     = -framework Foundation -framework GLUT -framework OpenGL -lm
+  LDFLAGS     = -framework Foundation -framework GLUT -framework OpenGL -lm -lSOIL
 else
   ifeq ("$(shell uname)", "Linux")
-    LDFLAGS     = -lglut -lGL -lm -L/usr/local/lib -lGLU
+    LDFLAGS     = -lSOIL -lglut -lGL -lm -L/usr/local/lib -lGLU
   endif
 endif
 

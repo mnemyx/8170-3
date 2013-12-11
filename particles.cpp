@@ -1,13 +1,14 @@
 /********************************************************
   particles.cpp
 
-  CPSC8170 - Proj 2   GBG   9/2013
+  CPSC8170 - Proj 3   GBG   9/2013
 *********************************************************/
 
 #include "Pmanager.h"
 #include "Pgenerator.h"
 #include "Entity.h"
 #include "time.h"
+#include "SOIL/SOIL.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -106,6 +107,7 @@ static int NTimeSteps = -1;
 Pmanager Manager;
 Pgenerator Generator1;
 Pgenerator Generator2;
+Pgenerator SphereGen;
 
 struct Env {
     Vector3d G;
@@ -117,11 +119,23 @@ static int ProcessClick = 0;
 static int Quadrant = -1;
 
 /***********************  avoidance constants *********************/
-double Ka = 1;
-double Kv = .5;
-double Kc = .75;
+double Ka = .5;
+double Kv = .25;
+double Kc = 2;
+
+/*********************** for image background *********************/
+GLuint texture;
 
 /************** DRAWING & SHADING FUNCTIONS ***********************/
+//
+// Load Texture using SOIL
+//
+void LoadTexture() {
+    texture = SOIL_load_OGL_texture(
+                "bg.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID,
+                SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT);
+}
+
 //
 // Get the shading setup for the objects
 //
@@ -153,7 +167,7 @@ void GetShading(int hueIndx) {
 //
 void DrawMovingObj() {
     GetShading(2);
-    Manager.DrawSystem(NTimeSteps%2);
+    Manager.DrawSystem(NTimeSteps%2, FrameNumber);
 }
 
 //
@@ -199,8 +213,9 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
     double ptd, ptg;
     int i;
     double Dij, dij, aa, av, ac, amax, ares;
-    double r1 = 15.0;
-    double r2 = 30.0;
+    double r1 = 10.0;
+    double r2 = 20.0;
+    int oldKv;
 
     if (env.Wind.x == 0 && env.Wind.y == 0 && env.Wind.z == 0)
         acc = env.G - env.Viscosity * s[indx + nmaxp];
@@ -227,20 +242,32 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
 
                     //cout << " dij: " << dij << endl;
 
-                    //if(i == 0) {
-                        //Dij = 1;
-                    //} else {
+                    if(i == 0) {
+                        Dij = 1;
+                    } else {
                         if(dij <= r1) Dij = 1.0;
                         else if (dij > r2) Dij = 0.0;
                         else Dij = 1.0 - (dij - r1) / (r2 - r1);
-                    //}
+                    }
 
                     //cout << Dij << endl;
 
-                    if(i == 0) Kv = 0.0; else Kv = 1;
-                    aaij = -Dij/m * Ka/dij * uij;
-                    avij = Dij/m * Kv * (s[i + nmaxp] - s[indx + nmaxp]);
-                    acij = Dij/m * Kc * dij * uij;
+                    if(i == 0) {
+                        oldKv = Kv;
+                        Kv = 0.0;
+                    }
+
+                    if(i == 0) {
+                        aaij = -Dij/m * Ka * uij;
+                        avij = Dij/m * Kv * (s[i + nmaxp] - s[indx + nmaxp]);
+                        acij = Dij/m * Kc * uij;
+                    } else {
+                        aaij = -Dij/m * Ka/dij * uij;
+                        avij = Dij/m * Kv/dij * (s[i + nmaxp] - s[indx + nmaxp]);
+                        acij = Dij/m * Kc * dij * uij;
+                    }
+
+                    if(i == 0) Kv = oldKv;
 
                     amax = 5.0;
 
@@ -304,7 +331,11 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
     } else {
 
         //point attractor at center
-        ptcenter.set(0,0,0);
+        //if(FrameNumber%2 == 0)
+            //ptcenter.set(-40,0,0);
+        //else
+            ptcenter.set(40, 0, 0);
+
         ptd = (s[indx] - ptcenter).norm();
         ptu = (s[indx] - ptcenter).normalize();
         ptg = 5;
@@ -312,6 +343,8 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
 
         ptacc = - ptg * ptu;
         acc = acc + ptacc;
+
+
 
     }
 
@@ -456,6 +489,7 @@ void Simulate(){
     // advance the real timestep
     Time += TimeStep;
     NTimeSteps++;
+    FrameNumber++;
 
 
     // set up time for next timestep if in continuous mode
@@ -509,9 +543,15 @@ void LoadParameters(char *filename){
     Generator2.SetPlanePts(Vector(80,80,-10), Vector(80,-60,-10), Vector(-80,-80,-10), Vector(-80,80,-10));
     Generator2.SetModel();
 
+    SphereGen.SetBaseAttr(2, 0.0, 0.0, 0.0, 0.0, Vector(0,0,0,1), 0.0, 0.0, 0.0, 0.0);
+    SphereGen.SetCenterRadius(Vector(0.0,0.0,0.0), 25);
+    SphereGen.SetModel();
+
     env.G.set(0,0,0);
     env.Wind.set(0,0,0);
     env.Viscosity = 0;
+
+    LoadTexture();
 
     TimerDelay = int(0.5 * TimeStep * 1000);
 }
@@ -526,6 +566,7 @@ void RestartSim(){
   glutIdleFunc(NULL);
   Time = 0;
   NTimeSteps = -1;
+  FrameNumber = 0;
   DrawScene(0);
 }
 
@@ -545,7 +586,7 @@ void InitSimulation(int argc, char* argv[]){
 
   Time = 0;
   NTimeSteps = -1;
-
+  FrameNumber = 0;
   srand48(time(0));
 }
 
@@ -904,10 +945,9 @@ void handleKey(unsigned char key, int x, int y){
 //
 int main(int argc, char* argv[]){
 
-  InitSimulation(argc, argv);
-
   glutInit(&argc, argv);
 
+  InitSimulation(argc, argv);
   InitCamera();
 
   /* open window and establish coordinate system on it */

@@ -169,7 +169,7 @@ int Pmanager::KillParticles(double ts) {
     return cnt;
 }
 
-void Pmanager::DrawSystem(int odd) {
+void Pmanager::DrawSystem(int odd, int fn) {
 	int i;
 	int zdiff = 0;
 
@@ -177,6 +177,8 @@ void Pmanager::DrawSystem(int odd) {
     glEnable(GL_SMOOTH);
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+
+    Vector3d p0, p1, p2, snorm;
 
     //glEnable(GL_POINT_SMOOTH);
     //glBegin(GL_POINTS);
@@ -190,16 +192,24 @@ void Pmanager::DrawSystem(int odd) {
     //glMatrixMode(GL_MODELVIEW);
     //glLoadIdentity();
 
-	for ( i = 0; i < nused; i++ ) {
+	for ( i = 1; i < nused; i++ ) {
         //cout << "x: " << S[i].x << " y: " << S[i].y << " z: " <<  S[i].z << endl;
         //glBegin(GL_TRIANGLES)
         //if(i == 0) glColor4f(255,255,255,1);
         //else glColor4f(255,0,0,1);
         //glVertex3f(S[i].x, S[i].y, S[i].z);
 
-        if(odd && (i%2)) zdiff = 3;
-        else if (odd && !(i%2)) zdiff = 0;
-        else -3;
+        if((fn%4)==0) {
+            if ((i%2)) zdiff = 3;
+            else zdiff = -3;
+        } else if ((fn%4)==1) {
+            zdiff = 0;
+        } else if ((fn%4)==2) {
+            if ((i%2)) zdiff = -3;
+            else zdiff = 3;
+        } else {
+            zdiff = 0;
+        }
 
         vel = S[i + nmaxparticles];
 
@@ -213,26 +223,123 @@ void Pmanager::DrawSystem(int odd) {
         r[12] = 0; r[13] = 0; r[14] = 0; r[15] = 1;
 
         glPushMatrix();
-        glScalef(.4,.4,.4);
+        glScalef(.5,.5,.5);
         glMultMatrixf(r);
 
-            glBegin(GL_TRIANGLES);
+            glBegin(GL_TRIANGLE_FAN);
+                glVertex3d(S[i].x, S[i].y, S[i].z);
+                glVertex3d(S[i].x+1, S[i].y+zdiff, S[i].z+4);
+                glVertex3d(S[i].x+2, S[i].y+zdiff, S[i].z+6);
+                glVertex3d(S[i].x+6, S[i].y+zdiff, S[i].z+4);
+                glVertex3d(S[i].x+6, S[i].y+zdiff, S[i].z+4);
+                glVertex3d(S[i].x+6, S[i].y+zdiff, S[i].z+2);
+                glVertex3d(S[i].x+3, S[i].y+zdiff, S[i].z+1);
+            glEnd();
+
+            glBegin(GL_TRIANGLE_FAN);
+                glVertex3d(S[i].x, S[i].y, S[i].z);
+                glVertex3d(S[i].x-3, S[i].y+zdiff, S[i].z+1);
+                glVertex3d(S[i].x-6, S[i].y+zdiff, S[i].z+2);
+                glVertex3d(S[i].x-6, S[i].y+zdiff, S[i].z+4);
+                glVertex3d(S[i].x-6, S[i].y+zdiff, S[i].z+4);
+                glVertex3d(S[i].x-2, S[i].y+zdiff, S[i].z+6);
+                glVertex3d(S[i].x-1, S[i].y+zdiff, S[i].z+4);
+            glEnd();
+
+            glBegin(GL_TRIANGLE_FAN);
+                glVertex3d(S[i].x, S[i].y, S[i].z);
+                glVertex3d(S[i].x+3, S[i].y+zdiff, S[i].z+1);
+                glVertex3d(S[i].x+5, S[i].y+zdiff, S[i].z-2);
+                //glVertex3d(S[i].x+5, S[i].y+zdiff, S[i].z-5);
+                //glVertex3d(S[i].x+4, S[i].y+zdiff, S[i].z-7);
+                glVertex3d(S[i].x+2, S[i].y+zdiff, S[i].z-8);
+                glVertex3d(S[i].x+1, S[i].y+zdiff, S[i].z-7);
+            glEnd();
+
+            glBegin(GL_TRIANGLE_FAN);
+                glVertex3d(S[i].x, S[i].y, S[i].z);
+                glVertex3d(S[i].x-1, S[i].y+zdiff, S[i].z-7);
+                glVertex3d(S[i].x-2, S[i].y+zdiff, S[i].z-8);
+                //glVertex3d(S[i].x-4, S[i].y+zdiff, S[i].z-5);
+                //glVertex3d(S[i].x-5, S[i].y+zdiff, S[i].z-7);
+                glVertex3d(S[i].x-5, S[i].y+zdiff, S[i].z-2);
+                glVertex3d(S[i].x-3, S[i].y+zdiff, S[i].z+1);
+            glEnd();
+
+                /**
+                //top...
+                p0.set(S[i].x, S[i].y, S[i].z);
+                p1.set(S[i].x+4, S[i].y+zdiff, S[i].z+5);
+                p2.set(S[i].x+3, S[i].y+zdiff, S[i].z+1);
+
+                snorm = ((p1 - p0) % (p2 - p0)).normalize();
+
                 glVertex3f(S[i].x, S[i].y, S[i].z);
                 glVertex3f(S[i].x+4, S[i].y+zdiff, S[i].z+5);
                 glVertex3f(S[i].x+3, S[i].y+zdiff, S[i].z+1);
+                glNormal3f(snorm.x,snorm.y,snorm.z);
+
+                p0.set(S[i].x, S[i].y, S[i].z);
+                p1.set(S[i].x-4, S[i].y+zdiff, S[i].z+5);
+                p2.set(S[i].x-3, S[i].y+zdiff, S[i].z+1);
+
+                snorm = ((p1 - p0) % (p2 - p0)).normalize();
 
                 glVertex3f(S[i].x, S[i].y, S[i].z);
                 glVertex3f(S[i].x-4, S[i].y+zdiff, S[i].z+5);
                 glVertex3f(S[i].x-3, S[i].y+zdiff, S[i].z+1);
+                glNormal3f(snorm.x,snorm.y,snorm.z);
+
+
+                // top triangles
+                p0.set(S[i].x, S[i].y, S[i].z);
+                p1.set(S[i].x+2, S[i].y+zdiff, S[i].z-8);
+                p2.set(S[i].x+4, S[i].y+zdiff, S[i].z-1);
+
+                snorm = ((p1 - p0) % (p2 - p0)).normalize();
 
                 glVertex3f(S[i].x, S[i].y, S[i].z);
                 glVertex3f(S[i].x+2, S[i].y+zdiff, S[i].z-8);
                 glVertex3f(S[i].x+4, S[i].y+zdiff, S[i].z-1);
+                glNormal3f(snorm.x,snorm.y,snorm.z);
+
+
+                p0.set(S[i].x, S[i].y, S[i].z);
+                p1.set(S[i].x-2, S[i].y+zdiff, S[i].z-8);
+                p2.set(S[i].x-4, S[i].y+zdiff, S[i].z-1);
+
+                snorm = ((p1 - p0) % (p2 - p0)).normalize();
 
                 glVertex3f(S[i].x, S[i].y, S[i].z);
                 glVertex3f(S[i].x-2, S[i].y+zdiff, S[i].z-8);
                 glVertex3f(S[i].x-4, S[i].y+zdiff, S[i].z-1);
-            glEnd();
+                glNormal3f(snorm.x,snorm.y,snorm.z);
+
+                // 2nd half of bottom
+                p0.set(S[i].x, S[i].y, S[i].z);
+                p1.set(S[i].x+4, S[i].y+zdiff, S[i].z+5);
+                p2.set(S[i].x+1, S[i].y+zdiff, S[i].z+3);
+
+                snorm = ((p1 - p0) % (p2 - p0)).normalize();
+
+                glVertex3f(S[i].x, S[i].y, S[i].z);
+                glVertex3f(S[i].x+4, S[i].y+zdiff, S[i].z+5);
+                glVertex3f(S[i].x+1, S[i].y+zdiff, S[i].z+3);
+                glNormal3f(snorm.x,snorm.y,snorm.z);
+
+
+                p0.set(S[i].x, S[i].y, S[i].z);
+                p1.set(S[i].x-1, S[i].y+zdiff, S[i].z+3);
+                p2.set(S[i].x-4, S[i].y+zdiff, S[i].z+5);
+
+                snorm = ((p1 - p0) % (p2 - p0)).normalize();
+
+                glVertex3f(S[i].x, S[i].y, S[i].z);
+                glVertex3f(S[i].x-4, S[i].y+zdiff, S[i].z+5);
+                glVertex3f(S[i].x-1, S[i].y+zdiff, S[i].z+3);
+                glNormal3f(snorm.x,snorm.y,snorm.z);
+                ***/
+                //glEnd();
 
         glPopMatrix();
     }

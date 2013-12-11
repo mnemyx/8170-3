@@ -1,4 +1,4 @@
-.1          151
+.1          25
 
 
 parameters format
