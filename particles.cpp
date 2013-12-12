@@ -208,7 +208,7 @@ void GetShading(int hueIndx) {
 //
 void DrawMovingObj() {
     // Draw Background
-    /**GLuint TextureID;
+    GLuint TextureID;
 
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -235,7 +235,7 @@ void DrawMovingObj() {
 	  glVertex3f(-125, -100, -75);
     glEnd();
 
-    glDisable(GL_TEXTURE_2D);**/
+    glDisable(GL_TEXTURE_2D);
     glEnable(GL_LIGHTING);
 	// Draw Butterflies
     GetShading(2);
@@ -724,7 +724,7 @@ void LoadParameters(char *filename){
     env.Wind.set(0,0,0);
     env.Viscosity = 0;
 
-    //LoadTexture();
+    LoadTexture();
 
     TimerDelay = int(0.5 * TimeStep * 1000);
 }
