@@ -20,8 +20,8 @@ else
   endif
 endif
 
-HFILES 	= Matrix.${H} Vector.${H} Utility.${H} Model.${H} Attributes.${H} Entity.${H} gauss.${H} Particle.${H} Pmanager.${H} Pgenerator.${H} State.${H} Pixmap.${H} ImageFile.${H} File.${H}
-OFILES 	= Matrix.o Vector.o Utility.o Model.o  Attributes.o Entity.o gauss.o Particle.o Pmanager.o Pgenerator.o State.o Pixmap.o ImageFile.o File.o
+HFILES 	= Matrix.${H} Vector.${H} Utility.${H} Model.${H} Attributes.${H} Entity.${H} gauss.${H} Particle.${H} Pmanager.${H} Pgenerator.${H} State.${H} Pixmap.${H} ImageFile.${H} File.${H} FrameGrabber.${H}
+OFILES 	= Matrix.o Vector.o Utility.o Model.o  Attributes.o Entity.o gauss.o Particle.o Pmanager.o Pgenerator.o State.o Pixmap.o ImageFile.o File.o FrameGrabber.o
 PROJECT = particles
 
 ${PROJECT}:	${PROJECT}.o $(OFILES)
@@ -29,6 +29,9 @@ ${PROJECT}:	${PROJECT}.o $(OFILES)
 
 ${PROJECT}.o: ${PROJECT}.${C} $(HFILES)
 	${CC} $(CFLAGS) -c ${PROJECT}.${C}
+
+FrameGrabber.o: FrameGrabber.${C} FrameGrabber.${H}
+	${CC} ${CFLAGS} -c ${INCFLAGS} FrameGrabber.${C}
 
 Pixmap.o: Pixmap.${C} Pixmap.${H}
 	${CC} ${CFLAGS} -c ${INCFLAGS} Pixmap.${C}

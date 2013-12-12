@@ -9,6 +9,7 @@
 #include "Entity.h"
 #include "time.h"
 #include "ImageFile.h"
+#include "FrameGrabber.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -25,8 +26,8 @@
 
 using namespace std;
 
-#define WINDOW_WIDTH	1024		/* window dimensions */
-#define WINDOW_HEIGHT	768
+#define WINDOW_WIDTH	960		/* window dimensions */
+#define WINDOW_HEIGHT	540
 
 #define MAXSTEPS	10000
 
@@ -50,6 +51,46 @@ using namespace std;
 #define AMBIENT_FRACTION 0.1	// lighting
 #define DIFFUSE_FRACTION 0.2
 #define SPECULAR_FRACTION 0.2
+
+
+//*************************************************************************
+// Your program needs the items between *****'s
+// Change the path and base filename for your application
+//
+// Also see in Display() callback routine: Your program must follow this
+// structure. The display callback does nothing except call a routine that
+// is responsible for drawing the current onscreen image, followed by a
+// glutSwapBuffers(). After this, if the frame is to be recorded to an image
+// file then call the recordimage() method of the framegrabber, with a single
+// argument, which is the name of the routine that draws the onscreen image.
+//
+// In this way, you can have an onscreen image of any desired size, while the
+// animation frames can be rendered offscreen at full HD resolution. Of course
+// your onscreen viewport's aspect ratio must be the same as the HD image
+// (1920 x 1080) or you will have stretching of the image either vertically or
+// horizontally.
+//
+
+#include <Magick++.h>
+#include "FrameGrabber.h"
+
+using namespace Magick;
+
+static string MYPATH = "~/Documents/Documents/CpSc8170/003/frames/";
+static string MYFILENAME = "gguerre_flock";
+
+#define HDWIDTH	      1920		// HD image dimensions
+#define HDHEIGHT      1080
+#define WIDTH	      (HDWIDTH/2)	// window dimensions = 1/2 HD
+#define HEIGHT	      (HDHEIGHT/2)
+#define STARTFRAME    0			// first frame number for numbering image files
+
+FrameGrabber framegrabber(MYPATH, MYFILENAME, HDWIDTH, HDHEIGHT, STARTFRAME);
+
+int Recording = false;
+
+//
+//*************************************************************************
 
 
 /******************* SHADING & COLORS *****************************/
@@ -167,7 +208,7 @@ void GetShading(int hueIndx) {
 //
 void DrawMovingObj() {
     // Draw Background
-    GLuint TextureID;
+    /**GLuint TextureID;
 
     glEnable(GL_TEXTURE_2D);
     glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -184,17 +225,17 @@ void DrawMovingObj() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
 	glBegin( GL_QUADS );
-	  glTexCoord2f( .4, 1 );
+	  glTexCoord2f( 0, 1 );
 	  glVertex3f( -125, 100, -75);
-	  glTexCoord2f( 1.4, 1 );
+	  glTexCoord2f( 1, 1 );
 	  glVertex3f( 125, 100, -75 );
-	  glTexCoord2f( 1.4, 0 );
+	  glTexCoord2f( 1, 0 );
 	  glVertex3f(125, -100, -75 );
-	  glTexCoord2f( .4, 0 );
+	  glTexCoord2f( 0, 0 );
 	  glVertex3f(-125, -100, -75);
     glEnd();
 
-    glDisable(GL_TEXTURE_2D);
+    glDisable(GL_TEXTURE_2D);**/
     glEnable(GL_LIGHTING);
 	// Draw Butterflies
     GetShading(2);
@@ -211,7 +252,7 @@ void DrawNonMovingObj() {
 //
 //  Draw the ball, its traces and the floor if needed
 //
-void DrawScene(int collision){
+void DrawScene(){
 
   int i,j;
   Model p;
@@ -223,6 +264,44 @@ void DrawScene(int collision){
   DrawMovingObj();
 
   glutSwapBuffers();
+}
+
+void DrawAll() {
+  const float light_position1[] = {-1, -3, -1, 1};
+  const float light_position2[] = {1, 3, 1, 0};
+
+  // clear the window to the background color
+  glClear(GL_COLOR_BUFFER_BIT);
+  glClear(GL_DEPTH_BUFFER_BIT);  // solid - clear depth buffer
+  // establish shading model, flat or smooth
+  glShadeModel(GL_SMOOTH);
+
+  // light is positioned in camera space so it does not move with object
+  glLoadIdentity();
+  glLightfv(GL_LIGHT0, GL_POSITION, light_position1);
+  glLightfv(GL_LIGHT0, GL_AMBIENT, CRIMSON);
+  glLightfv(GL_LIGHT0, GL_DIFFUSE, CRIMSON);
+  glLightfv(GL_LIGHT0, GL_SPECULAR, CRIMSON);
+
+  glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
+  glLightfv(GL_LIGHT1, GL_AMBIENT, VIOLET);
+  glLightfv(GL_LIGHT1, GL_DIFFUSE, VIOLET);
+  glLightfv(GL_LIGHT1, GL_SPECULAR, VIOLET);
+
+  glEnable(GL_LIGHTING);
+  glEnable(GL_LIGHT0);
+  glEnable(GL_LIGHT1);
+
+  // establish camera coordinates
+  glRotatef(Tilt, 1, 0, 0);	    // tilt - rotate camera about x axis
+  glRotatef(Pan, 0, 1, 0);	    // pan - rotate camera about y axis
+  glTranslatef(0, 0, Approach);     // approach - translate camera along z axis
+
+  // rotate the model
+  glRotatef(ThetaY, 0, 1, 0);       // rotate model about x axis
+  glRotatef(ThetaX, 1, 0, 0);       // rotate model about y axis
+
+  DrawScene();
 }
 
 /********************* CALLED BY SIMULATE() ***********************/
@@ -575,7 +654,7 @@ void Simulate(){
 
     //Manager.S.PrintState();
     //cout << "Before & After " << endl;
-    DrawScene(0);
+    DrawScene();
     Manager.S = RK4(Manager.S, 1, Time, TimeStep);
    // Manager.S.PrintState();
     //cout.rdbuf(oldbuf);
@@ -645,7 +724,7 @@ void LoadParameters(char *filename){
     env.Wind.set(0,0,0);
     env.Viscosity = 0;
 
-    LoadTexture();
+    //LoadTexture();
 
     TimerDelay = int(0.5 * TimeStep * 1000);
 }
@@ -661,7 +740,7 @@ void RestartSim(){
   Time = 0;
   NTimeSteps = -1;
   FrameNumber = 0;
-  DrawScene(0);
+  DrawScene();
 }
 
 
@@ -709,43 +788,12 @@ void InitCamera() {
 //  On Redraw request, erase the window and redraw everything
 //
 void drawDisplay(){
-  const float light_position1[] = {-1, -3, -1, 1};
-  const float light_position2[] = {1, 3, 1, 0};
-
-  // clear the window to the background color
-  glClear(GL_COLOR_BUFFER_BIT);
-  glClear(GL_DEPTH_BUFFER_BIT);  // solid - clear depth buffer
-  // establish shading model, flat or smooth
-  glShadeModel(GL_SMOOTH);
-
-  // light is positioned in camera space so it does not move with object
-  glLoadIdentity();
-  glLightfv(GL_LIGHT0, GL_POSITION, light_position1);
-  glLightfv(GL_LIGHT0, GL_AMBIENT, CRIMSON);
-  glLightfv(GL_LIGHT0, GL_DIFFUSE, CRIMSON);
-  glLightfv(GL_LIGHT0, GL_SPECULAR, CRIMSON);
-
-  glLightfv(GL_LIGHT1, GL_POSITION, light_position2);
-  glLightfv(GL_LIGHT1, GL_AMBIENT, VIOLET);
-  glLightfv(GL_LIGHT1, GL_DIFFUSE, VIOLET);
-  glLightfv(GL_LIGHT1, GL_SPECULAR, VIOLET);
-
-  glEnable(GL_LIGHTING);
-  glEnable(GL_LIGHT0);
-  glEnable(GL_LIGHT1);
-
-  // establish camera coordinates
-  glRotatef(Tilt, 1, 0, 0);	    // tilt - rotate camera about x axis
-  glRotatef(Pan, 0, 1, 0);	    // pan - rotate camera about y axis
-  glTranslatef(0, 0, Approach);     // approach - translate camera along z axis
-
-  // rotate the model
-  glRotatef(ThetaY, 0, 1, 0);       // rotate model about x axis
-  glRotatef(ThetaX, 1, 0, 0);       // rotate model about y axis
-
-  DrawScene(0);
-
+  DrawAll();
   glutSwapBuffers();
+
+  // recordimage() method needs a pointer to the routine that does all of the drawing
+  if(Recording)
+    framegrabber.recordimage(DrawAll);
 }
 
 //
@@ -856,7 +904,7 @@ void handleButton(int button, int state, int x, int y){
         Manager.SetStarted(false);
         Manager.SetStopped(false);
         // need to re-initialize...should move to key press?
-        DrawScene(0);
+        DrawScene();
         glutIdleFunc(Simulate);
       }
       else if(Manager.IsStopped()){
@@ -1024,6 +1072,13 @@ void handleKey(unsigned char key, int x, int y){
         Manager.KillAll();
         RestartSim();
       break;
+
+    case 's':			// s -- toggle between recording or not
+    case 'S':
+      Recording = !Recording;
+      glutPostRedisplay();
+      break;
+
     default:		// not a valid key -- just ignore it
       return;
 
