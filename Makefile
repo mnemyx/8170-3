@@ -9,18 +9,19 @@
 CC      = g++
 C	= cpp
 H	= h
-CFLAGS 	= -g
+CFLAGS		= -g `Magick++-config --cppflags`
+LFLAGS		= -g `Magick++-config --ldflags`
 
 ifeq ("$(shell uname)", "Darwin")
-  LDFLAGS     = -framework Foundation -framework GLUT -framework OpenGL -lm -lSOIL
+  LDFLAGS     = -framework Foundation -framework GLUT -framework OpenGL -lm -lMagick++
 else
   ifeq ("$(shell uname)", "Linux")
-    LDFLAGS     = -lSOIL -lglut -lGL -lm -L/usr/local/lib -lGLU
+    LDFLAGS     = -lglut -lGL -lm -L/usr/local/lib -lGLU -lMagick++
   endif
 endif
 
-HFILES 	= Matrix.${H} Vector.${H} Utility.${H} Model.${H} Attributes.${H} Entity.${H} gauss.${H} Particle.${H} Pmanager.${H} Pgenerator.${H} State.${H}
-OFILES 	= Matrix.o Vector.o Utility.o Model.o  Attributes.o Entity.o gauss.o Particle.o Pmanager.o Pgenerator.o State.o
+HFILES 	= Matrix.${H} Vector.${H} Utility.${H} Model.${H} Attributes.${H} Entity.${H} gauss.${H} Particle.${H} Pmanager.${H} Pgenerator.${H} State.${H} Pixmap.${H} ImageFile.${H} File.${H}
+OFILES 	= Matrix.o Vector.o Utility.o Model.o  Attributes.o Entity.o gauss.o Particle.o Pmanager.o Pgenerator.o State.o Pixmap.o ImageFile.o File.o
 PROJECT = particles
 
 ${PROJECT}:	${PROJECT}.o $(OFILES)
@@ -29,7 +30,16 @@ ${PROJECT}:	${PROJECT}.o $(OFILES)
 ${PROJECT}.o: ${PROJECT}.${C} $(HFILES)
 	${CC} $(CFLAGS) -c ${PROJECT}.${C}
 
-Stateo: State.${C} State.${H}
+Pixmap.o: Pixmap.${C} Pixmap.${H}
+	${CC} ${CFLAGS} -c ${INCFLAGS} Pixmap.${C}
+
+ImageFile.o: ImageFile.${C} ImageFile.${H}
+	${CC} ${CFLAGS} -c ${INCFLAGS} ImageFile.${C}
+
+File.o: File.${C} File.${H}
+	${CC} ${CFLAGS} -c ${INCFLAGS} File.${C}
+
+State.o: State.${C} State.${H}
 	${CC} ${CFLAGS} -c ${INCFLAGS} State.${C}
 
 Pgenerator.o: Pgenerator.${C} Pgenerator.${H}

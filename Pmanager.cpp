@@ -192,7 +192,7 @@ void Pmanager::DrawSystem(int odd, int fn) {
     //glMatrixMode(GL_MODELVIEW);
     //glLoadIdentity();
 
-	for ( i = 1; i < nused; i++ ) {
+	for ( i = 0; i < nused; i++ ) {
         //cout << "x: " << S[i].x << " y: " << S[i].y << " z: " <<  S[i].z << endl;
         //glBegin(GL_TRIANGLES)
         //if(i == 0) glColor4f(255,255,255,1);

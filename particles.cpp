@@ -8,7 +8,7 @@
 #include "Pgenerator.h"
 #include "Entity.h"
 #include "time.h"
-#include "SOIL/SOIL.h"
+#include "ImageFile.h"
 
 #include <cstdlib>
 #include <cstdio>
@@ -22,10 +22,11 @@
 #  include <GL/glut.h>
 #endif
 
+
 using namespace std;
 
-#define WINDOW_WIDTH	800		/* window dimensions */
-#define WINDOW_HEIGHT	600
+#define WINDOW_WIDTH	1024		/* window dimensions */
+#define WINDOW_HEIGHT	768
 
 #define MAXSTEPS	10000
 
@@ -119,21 +120,20 @@ static int ProcessClick = 0;
 static int Quadrant = -1;
 
 /***********************  avoidance constants *********************/
-double Ka = .5;
+double Ka = .2;
 double Kv = .25;
 double Kc = 2;
 
-/*********************** for image background *********************/
-GLuint texture;
+Pixmap *PMap;
 
 /************** DRAWING & SHADING FUNCTIONS ***********************/
 //
 // Load Texture using SOIL
 //
 void LoadTexture() {
-    texture = SOIL_load_OGL_texture(
-                "bg.jpg", SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID,
-                SOIL_FLAG_MIPMAPS | SOIL_FLAG_INVERT_Y | SOIL_FLAG_NTSC_SAFE_RGB | SOIL_FLAG_COMPRESS_TO_DXT);
+    char* file = "bg.jpg";
+    ImageFile image(file);
+    PMap = image.getpixmap();
 }
 
 //
@@ -166,6 +166,37 @@ void GetShading(int hueIndx) {
 // Draw the moving objects
 //
 void DrawMovingObj() {
+    // Draw Background
+    GLuint TextureID;
+
+    glEnable(GL_TEXTURE_2D);
+    glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+    glDisable(GL_LIGHTING);
+
+    glGenTextures(1, &TextureID);
+    glBindTexture(GL_TEXTURE_2D, TextureID);
+    gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA, PMap->NCols(), PMap->NRows(), GL_RGBA, GL_UNSIGNED_BYTE, PMap);
+
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+
+	glBegin( GL_QUADS );
+	  glTexCoord2f( .4, 1 );
+	  glVertex3f( -125, 100, -75);
+	  glTexCoord2f( 1.4, 1 );
+	  glVertex3f( 125, 100, -75 );
+	  glTexCoord2f( 1.4, 0 );
+	  glVertex3f(125, -100, -75 );
+	  glTexCoord2f( .4, 0 );
+	  glVertex3f(-125, -100, -75);
+    glEnd();
+
+    glDisable(GL_TEXTURE_2D);
+    glEnable(GL_LIGHTING);
+	// Draw Butterflies
     GetShading(2);
     Manager.DrawSystem(NTimeSteps%2, FrameNumber);
 }
@@ -328,24 +359,80 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
             }
         }
 
+        //point attractor at center
+//        if(FrameNumber%100 == 0)
+//            ptcenter.set(-40,0,0);
+//        else
+//            ptcenter.set(40, 0, 0);
+
+            ptcenter.set(s[0]);
+
+            ptd = (s[indx] - ptcenter).norm();
+            ptu = (s[indx] - ptcenter).normalize();
+            ptg = 10;
+
+
+            ptacc = - ptg * ptu * 1/ptd;
+            acc = acc + ptacc;
+
+        /**if(FrameNumber < 10) {
+            ptcenter.set(0, 0, 0);
+
+            ptd = (s[indx] - ptcenter).norm();
+            ptu = (s[indx] - ptcenter).normalize();
+            ptg = 50;
+
+
+            ptacc = - ptg * ptu;
+            acc = acc + ptacc;
+        } else if ( FrameNumber < 400 ) {
+
+            double cpd;
+            Vector3d cpu, cpacc, cpcen;
+            double cpg = -60;
+
+            cpcen.set(0,0,0);
+
+            cpd = (s[indx] - cpcen).norm();
+            cpu = (s[indx] - cpcen).normalize();
+
+            cpacc = - cpg * (1/(cpd*cpd)) * cpu;
+            acc = acc + cpacc;
+
+        } else {
+
+            ptcenter.set(0, 0, 0);
+
+            ptd = (s[indx] - ptcenter).norm();
+            ptu = (s[indx] - ptcenter).normalize();
+            ptg = 20;
+
+
+            ptacc = - ptg * ptu;
+            acc = acc + ptacc;
+
+        }**/
+
     } else {
 
         //point attractor at center
-        //if(FrameNumber%2 == 0)
+        //if(FrameNumber%10 == 0)
             //ptcenter.set(-40,0,0);
         //else
-            ptcenter.set(40, 0, 0);
+            //ptcenter.set(40, 0, 0);
 
-        ptd = (s[indx] - ptcenter).norm();
-        ptu = (s[indx] - ptcenter).normalize();
-        ptg = 5;
-
-
-        ptacc = - ptg * ptu;
-        acc = acc + ptacc;
+       // ptd = (s[indx] - ptcenter).norm();
+        //ptu = (s[indx] - ptcenter).normalize();
+        //ptg = 20;
 
 
+        //ptacc = - ptg * ptu;
+        //acc = acc + ptacc;
 
+        if(FrameNumber%200 == 0)
+            acc.set(-40,0,0);
+        else
+            acc.set(40, 0, 0);
     }
 
 
@@ -383,6 +470,13 @@ Vector3d Accelerate(State s, double  t, double m, int indx) {
         acc.z = -3;
     }
 
+    if(acc.x >= .1) acc.x = .1;
+    if(acc.y >= .1) acc.y = .1;
+    if(acc.z >= .1) acc.z = .1;
+
+    if(acc.x <= -.1) acc.x = -.1;
+    if(acc.y <= -.1) acc.y = -.1;
+    if(acc.z <= -.1) acc.z = -.1;
 
     //acc.print();
     //cout << " after"<< endl;
@@ -415,7 +509,7 @@ State F(State s, double m, double t) {
             //x[i].z = x[i].z + (100 * (sin(1 * t + 30)));
 
         //} else {
-            x[i] = s[nmaxp + i]  + Displace(-5, 6);
+            x[i] = s[nmaxp + i] + Displace(-3,4);
 
         //}
 
@@ -465,12 +559,12 @@ void Simulate(){
             Generator1.GenerateAttr(0);
             Generator2.GenerateAttr(0);
             if(i == 0)
-            Manager.UseParticle(Vector(25, 5,0), Vector(2,0,0), Time, Vector(1,0,0,1), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+                Manager.UseParticle(Vector(-100, 5,0), Vector(2,0,0), Time, Vector(1,0,0,1), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
             else {
                 if( i < (Manager.GetMaxParticles()/2) )
-                Manager.UseParticle(Generator1.GenC0(), Vector(1,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+                    Manager.UseParticle(Generator1.GenC0(), Vector(2,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
                 else
-                Manager.UseParticle(Generator2.GenC0(), Vector(1,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
+                    Manager.UseParticle(Generator2.GenC0(), Vector(2,0,0), Time, Generator1.GenCol(), .0005, Generator1.GetCoefff(), Generator1.GetCoeffr(), false);
             }
         }
     }
